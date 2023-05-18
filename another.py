@@ -71,30 +71,40 @@ def main():
             scaled_data = scaler.fit_transform(simplified_data)
 
             # Prepare LSTM training data
-            train_data = scaled_data[:int(0.9*len(scaled_data))]
-            x_train = []
-            y_train = []
-            for i in range(8784, len(train_data)):
-                x_train.append(train_data[i-8784:i, 0])
+            # Data scaling
+            scaler = MinMaxScaler()
+            scaled_data = scaler.fit_transform(data)
+
+            # Prepare training data
+            train_data = scaled_data[:-8760]  # Use all but the last year for training
+            x_train, y_train = [], []
+            for i in range(8760, len(train_data)):
+                x_train.append(train_data[i-8760:i, 0])
                 y_train.append(train_data[i, 0])
             x_train, y_train = np.array(x_train), np.array(y_train)
-            
-            
+            x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
 
             # Create and train LSTM model
-            lstm_model = create_lstm_model()
-            lstm_model.fit(x_train, y_train, epochs=10, batch_size=32)
-
+            model = Sequential()
+            model.add(LSTM(units=50, return_sequences=True, input_shape=(x_train.shape[1], 1)))
+            model.add(LSTM(units=50))
+            model.add(Dense(units=1))
+            model.compile(optimizer='adam', loss='mean_squared_error')
+            model.fit(x_train, y_train, epochs=10, batch_size=32)
+ 
             # Forecasting
-            test_data = scaled_data[int(0.9*len(scaled_data)):]
+            last_year_data = scaled_data[-8760:]  # Use the last year for forecasting
             x_test = []
-            y_test = simplified_data[int(0.9*len(scaled_data)):]
-            for i in range(8784, len(test_data)):
-                x_test.append(test_data[i-8784:i, 0])
+            for i in range(8760, len(last_year_data)):
+                x_test.append(last_year_data[i-8760:i, 0])
             x_test = np.array(x_test)
             x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
-            predicted_data = lstm_model.predict(x_test)
+            predicted_data = model.predict(x_test)
             predicted_data = scaler.inverse_transform(predicted_data)
+
+            return predicted_data
+
+
 
         elif model == 'SARIMA':
             # Create and fit SARIMA model
@@ -107,7 +117,7 @@ def main():
 
         # Plot forecast
         forecast = simplified_data.copy()
-        forecast['Prediction'] = predicted_data
+        forecast['avg_lmp'] = predicted_data
         plot_forecast(simplified_data, forecast)
 
 if __name__ == '__main__':
