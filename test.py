@@ -41,7 +41,7 @@ def sarima_forecast(data):
 
 # Streamlit app
 def main():
-    df = pd.read_csv(r'/content/sample_data/dipcef.csv', index_col='time_interval', parse_dates=True)
+    df = pd.read_csv(r'dipcef.csv', index_col='time_interval', parse_dates=True)
     #path = r'/content/sample_data'
     #all_files = glob.glob(os.path.join(path, "dipcef_*.csv"))
 
