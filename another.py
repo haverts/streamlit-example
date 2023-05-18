@@ -20,7 +20,7 @@ def simplify_to_hourly(data):
 # Streamlit app
 def main():
     # Page title
-    st.title('1 Year Forecast Simplification')
+    st.title('Energy Market Price Forecast')
 
     # Data upload
     st.header('Data Upload')
