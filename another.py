@@ -89,11 +89,11 @@ def main():
 
 
         # Plot forecast
-        trace1 = go.Scatter(x=df.index, y=df.avg_lmp, name='Actual')
-        trace2 = go.Scatter(x=list(lstm_predictions.index), y=lstm_predictions.avg_lmp, name='LSTM')
-        layout = go.Layout(title='Actual vs Forecast LMP')
-        fig = go.Figure(data=[trace1, trace2], layout=layout)
-        fig.show()
+      trace1 = go.Scatter(x=df.index, y=df.avg_lmp, name='Actual')
+      trace2 = go.Scatter(x=list(lstm_predictions.index), y=lstm_predictions.avg_lmp, name='LSTM')
+      layout = go.Layout(title='Actual vs Forecast LMP')
+      fig = go.Figure(data=[trace1, trace2], layout=layout)
+      fig.show()
 
 if __name__ == '__main__':
     main()
