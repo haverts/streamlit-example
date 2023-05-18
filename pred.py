@@ -43,15 +43,14 @@ def main():
     st.title("LSTM Forecasting")
     file = st.file_uploader("Upload CSV file", type="csv")
     if file is not None:
-        data, scaler = load_data(file.name)
-        # Convert data array back to DataFrame
-        df = pd.DataFrame(data, columns=['avg_lmp'], index=pd.to_datetime(file['time_interval']))
+        df = pd.read_csv(file, parse_dates=['time_interval'], index_col='time_interval')
+        data, scaler = load_data(df)
         forecast = generate_forecast(data, scaler)
-        
+
         # Create hourly timestamps for x-axis
         start_time = df.index[-1] + pd.Timedelta(minutes=5)
         hourly_timestamps = pd.date_range(start=start_time, periods=12, freq='H')
-        
+
         # Plot the forecast
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=df.index, y=scaler.inverse_transform(df.values),
@@ -65,3 +64,4 @@ def main():
 # Run the app
 if __name__ == '__main__':
     main()
+
