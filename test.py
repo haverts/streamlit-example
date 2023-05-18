@@ -21,6 +21,7 @@ def create_lstm_model():
 
 def create_sarima_model():
     model = SARIMAX(data['avg_lmp'], order=(1, 0, 0), seasonal_order=(1, 1, 0, 8784))
+    model = model.fit()
     return model
 
 # Define the forecasting function for LSTM
