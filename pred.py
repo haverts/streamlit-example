@@ -7,8 +7,8 @@ from sklearn.preprocessing import MinMaxScaler
 import plotly.graph_objects as go
 
 # Load and preprocess the data
-def load_data(file):
-    df = pd.read_csv(file)
+def load_data(file_path):
+    df = pd.read_csv(file_path)
     df['time_interval'] = pd.to_datetime(df['time_interval'])
     df.set_index('time_interval', inplace=True)
     scaler = MinMaxScaler()
@@ -41,7 +41,7 @@ def generate_forecast(data, scaler):
 # Main function
 def main():
     st.title("LSTM Forecasting")
-    file = st.file_uploader("Upload CSV file", type="csv")
+    file = st.file_uploader("Upload CSV file", type=['csv'])
     if file is not None:
         data, scaler = load_data(file.name)
         forecast = generate_forecast(data, scaler)
