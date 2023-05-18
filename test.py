@@ -74,7 +74,7 @@ def main():
     
     # Display the hourly forecast
     st.write('Hourly Forecast:')
-    st.write(pd.DataFrame({'Forecast': forecast}, index=data.tail(4392).index))
+    st.write(pd.DataFrame({'Forecast': forecast}, index=data.tail(4).index))
 
 if __name__ == '__main__':
     main()
