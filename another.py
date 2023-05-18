@@ -74,7 +74,7 @@ def main():
             train_data = scaled_data[:int(0.9*len(scaled_data))]
             x_train = []
             y_train = []
-            for i in range(, len(train_data)):
+            for i in range(8784, len(train_data)):
                 x_train.append(train_data[i-8784:i, 0])
                 y_train.append(train_data[i, 0])
             x_train, y_train = np.array(x_train), np.array(y_train)
