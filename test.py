@@ -68,8 +68,10 @@ def main():
     
     # Generate the forecast based on the selected model
     if model_selection == 'LSTM':
+        data, scaler = preprocess_data(data)
         forecast = lstm_forecast(data, scaler)
     elif model_selection == 'SARIMA':
+        data, scaler = preprocess_data(data)
         forecast = sarima_forecast(data)
     
     # Display the hourly forecast
