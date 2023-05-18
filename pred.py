@@ -7,7 +7,7 @@ import glob
 
 OutputPath = r'C:\Users\ReymondJardin\Desktop'
 
-df = pd.read_csv(r'C:\Users\ReymondJardin\Desktop\dipcef.csv', index_col='time_interval', parse_dates=True)
+df = pd.read_csv(r'dipcef.csv', index_col='time_interval', parse_dates=True)
 #path = r'/content/sample_data'
 #all_files = glob.glob(os.path.join(path, "dipcef_*.csv"))
 
