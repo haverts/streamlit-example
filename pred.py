@@ -45,7 +45,7 @@ def main():
     if file is not None:
         data, scaler = load_data(file.name)
         # Convert data array back to DataFrame
-        df = pd.DataFrame(data, columns=['Value'], index=pd.to_datetime(file['Timestamp']))
+        df = pd.DataFrame(data, columns=['avg_lmp'], index=pd.to_datetime(file['time_interval']))
         forecast = generate_forecast(data, scaler)
         
         # Create hourly timestamps for x-axis
