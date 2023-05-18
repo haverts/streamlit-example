@@ -37,7 +37,7 @@ def lstm_forecast(data, scaler):
 def sarima_forecast(data):
     sarima_model = create_sarima_model()
     sarima_model_fit = sarima_model.fit()
-    forecast = sarima_model_fit.forecast(steps=12)
+    forecast = sarima_model_fit.forecast(steps=4392)
     return forecast
 
 # Streamlit app
