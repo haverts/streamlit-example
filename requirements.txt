@@ -4,3 +4,4 @@ streamlit
 statsmodels
 scikit-learn
 matplotlib
+tensorflow
