@@ -11,6 +11,7 @@ from pmdarima.arima import auto_arima
 
 # Function to simplify data to hourly intervals
 def simplify_to_hourly(data):
+    data = data.interpolate(method='linear')
     hourly_data = data.resample('1H').mean().ffill()
     return hourly_data
 
