@@ -1,92 +1,65 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from statsmodels.tsa.arima.model import ARIMA
-import os
-import glob
-
-OutputPath = r'C:\Users\ReymondJardin\Desktop'
-
-df = pd.read_csv(r'dipcef.csv', index_col='time_interval', parse_dates=True)
-#path = r'/content/sample_data'
-#all_files = glob.glob(os.path.join(path, "dipcef_*.csv"))
-
-#df = pd.concat((pd.read_csv(f, parse_dates=True) for f in all_files))
-
-df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-#df['time_interval'] = pd.to_datetime(df['time_interval'])
-#df = df.drop(columns=['MKT_TYPE', 'COMMODITY_TYPE','RESOURCE_NAME', 'RESOURCE_TYPE' , 'REGION_NAME' ,'RUN_TIME'])
-print('Shape of Data' , df.shape)
-df = df.dropna()
-df.info()
-
-import datetime
-#df.index = df.index.date
-#df = df.groupby(df.index)['avg_lmp'].agg(avg_lmp=('mean'))
-# Resample the data to hourly intervals
-df = df.resample('1H').mean()
-df
-
-train_data = df[:-4392]
-test_data = df[-4392:]
-
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from statsmodels.tsa.statespace.sarimax import SARIMAX
-from sklearn.preprocessing import MinMaxScaler
+import streamlit as st
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
-
-scaler = MinMaxScaler()
-train_scaled = scaler.fit_transform(train_data)
-test_scaled = scaler.transform(test_data)
-
-# Define the LSTM model
-lstm_model = Sequential()
-lstm_model.add(LSTM(units=50, return_sequences=True, input_shape=(train_scaled.shape[1], 1)))
-lstm_model.add(Dropout(0.2))
-lstm_model.add(LSTM(units=50, return_sequences=True))
-lstm_model.add(Dropout(0.2))
-lstm_model.add(LSTM(units=50))
-lstm_model.add(Dropout(0.2))
-lstm_model.add(Dense(units=1))
-
-# Compile the LSTM model
-lstm_model.compile(optimizer='adam', loss='mean_squared_error')
-
-# Fit the LSTM model to the training data
-lstm_model.fit(train_scaled, train_scaled, epochs=100, batch_size=32)
-
-# Make predictions using the LSTM model
-lstm_predictions = lstm_model.predict(test_scaled)
-lstm_predictions = scaler.inverse_transform(lstm_predictions)
-
-# Define the SARIMA model
-sarima_model = SARIMAX(train_data, order=(2, 1, 2), seasonal_order=(0, 1, 1, 4392))
-
-# Fit the SARIMA model to the training data
-sarima_fit = sarima_model.fit()
-
-# Make predictions using the SARIMA model
-sarima_predictions = sarima_fit.predict(start=len(train_data), end=len(train_data)+len(test_data)-1, dynamic=False)
-
-test_data.index = pd.to_datetime(test_data.index, errors='coerce')
-test_data = test_data.shift(freq='4392H')
-
-lstm_predictions = pd.DataFrame(lstm_predictions, index=test_data.index)
-lstm_predictions = lstm_predictions.rename(columns={0: 'avg_lmp'})
-
+from tensorflow.keras.layers import LSTM, Dense
+from sklearn.preprocessing import MinMaxScaler
 import plotly.graph_objects as go
-import pandas as pd
 
-trace1 = go.Scatter(x=df.index, y=df.avg_lmp, name='Actual')
-trace2 = go.Scatter(x=list(lstm_predictions.index), y=lstm_predictions.avg_lmp, name='LSTM')
-trace3 = go.Scatter(x=list(test_data.index), y=sarima_predictions, name='SARIMAX')
+# Load and preprocess the data
+def load_data(file_path):
+    df = pd.read_csv(file_path)
+    df['time_interval'] = pd.to_datetime(df['time_interval'])
+    df.set_index('time_interval', inplace=True)
+    scaler = MinMaxScaler()
+    scaled_data = scaler.fit_transform(df.values)
+    return scaled_data, scaler
 
+# Create the LSTM model
+def create_lstm_model():
+    model = Sequential()
+    model.add(LSTM(50, activation='relu', return_sequences=True, input_shape=(60, 1)))
+    model.add(LSTM(50, activation='relu'))
+    model.add(Dense(1))
+    model.compile(optimizer='adam', loss='mse')
+    return model
 
-layout = go.Layout(title='Actual vs Forecast LMP using LSTM and SARIMAX')
-fig = go.Figure(data=[trace1, trace2, trace3], layout=layout)
-fig.show()
+# Generate the forecast
+def generate_forecast(data, scaler):
+    model = create_lstm_model()
+    model.fit(data[:-12], data[12:], epochs=50, batch_size=32)
+    last_60 = data[-60:]
+    forecast = []
+    for _ in range(12):
+        prediction = model.predict(last_60.reshape(1, 60, 1))
+        forecast.append(prediction[0])
+        last_60 = np.roll(last_60, -1)
+        last_60[-1] = prediction[0]
+    forecast = scaler.inverse_transform(forecast)
+    return forecast
 
-fig.write_html(fr'{OutputPath}\forecast.html',  auto_open=True)
+# Main function
+def main():
+    st.title("LSTM Forecasting")
+    file = st.file_uploader("Upload CSV file", type="csv")
+    if file is not None:
+        data, scaler = load_data(file.name)
+        forecast = generate_forecast(data, scaler)
+        
+        # Create hourly timestamps for x-axis
+        start_time = pd.to_datetime(data.index[-1]) + pd.Timedelta(minutes=5)
+        hourly_timestamps = pd.date_range(start=start_time, periods=12, freq='H')
+        
+        # Plot the forecast
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=data.index, y=scaler.inverse_transform(data),
+                                 name='Actual Data', line=dict(color='blue')))
+        fig.add_trace(go.Scatter(x=hourly_timestamps, y=forecast,
+                                 name='Forecast', line=dict(color='orange')))
+        fig.update_layout(xaxis=dict(tickformat='%H:%M', title='Time'),
+                          yaxis=dict(title='Value'))
+        st.plotly_chart(fig)
+
+# Run the app
+if __name__ == '__main__':
+    main()
