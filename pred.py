@@ -41,18 +41,20 @@ def generate_forecast(data, scaler):
 # Main function
 def main():
     st.title("LSTM Forecasting")
-    file = st.file_uploader("Upload CSV file", type=['csv'])
+    file = st.file_uploader("Upload CSV file", type="csv")
     if file is not None:
         data, scaler = load_data(file.name)
+        # Convert data array back to DataFrame
+        df = pd.DataFrame(data, columns=['Value'], index=pd.to_datetime(file['Timestamp']))
         forecast = generate_forecast(data, scaler)
         
         # Create hourly timestamps for x-axis
-        start_time = pd.to_datetime(data.index[-1]) + pd.Timedelta(minutes=5)
+        start_time = df.index[-1] + pd.Timedelta(minutes=5)
         hourly_timestamps = pd.date_range(start=start_time, periods=12, freq='H')
         
         # Plot the forecast
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=data.index, y=scaler.inverse_transform(data),
+        fig.add_trace(go.Scatter(x=df.index, y=scaler.inverse_transform(df.values),
                                  name='Actual Data', line=dict(color='blue')))
         fig.add_trace(go.Scatter(x=hourly_timestamps, y=forecast,
                                  name='Forecast', line=dict(color='orange')))
