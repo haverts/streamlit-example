@@ -43,25 +43,23 @@ def main():
     st.title("LSTM Forecasting")
     file = st.file_uploader("Upload CSV file", type="csv")
     if file is not None:
-        df = pd.read_csv(file, parse_dates=['time_interval'], index_col='time_interval')
-        data, scaler = load_data(df)
+        data, scaler = load_data(file.name)
         forecast = generate_forecast(data, scaler)
-
+        
         # Create hourly timestamps for x-axis
-        start_time = df.index[-1] + pd.Timedelta(minutes=5)
+        start_time = pd.to_datetime(data.index[-1]) + pd.Timedelta(minutes=5)
         hourly_timestamps = pd.date_range(start=start_time, periods=12, freq='H')
-
+        
         # Plot the forecast
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=df.index, y=scaler.inverse_transform(df.values),
+        fig.add_trace(go.Scatter(x=data.index, y=scaler.inverse_transform(data),
                                  name='Actual Data', line=dict(color='blue')))
         fig.add_trace(go.Scatter(x=hourly_timestamps, y=forecast,
                                  name='Forecast', line=dict(color='orange')))
-        fig.update_layout(xaxis=dict(tickformat='%H:%M', title='Time'),
-                          yaxis=dict(title='Value'))
+        fig.update_layout(xaxis=dict(tickformat='%H:%M', title='Delivery_Interval'),
+                          yaxis=dict(title='avg_lmp'))
         st.plotly_chart(fig)
 
 # Run the app
 if __name__ == '__main__':
     main()
-
