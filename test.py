@@ -20,7 +20,7 @@ def create_lstm_model():
     return model
 
 def create_sarima_model():
-    model = SARIMAX(data['avg_lmp'], order=(1, 0, 0), seasonal_order=(1, 1, 0, 4392))
+    model = SARIMAX(scaler['avg_lmp'], order=(1, 0, 0), seasonal_order=(1, 1, 0, 4392))
     model = model.fit()
     return model
 
