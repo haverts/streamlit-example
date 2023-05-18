@@ -101,8 +101,7 @@ def main():
             x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
             predicted_data = model.predict(x_test)
             predicted_data = scaler.inverse_transform(predicted_data)
-
-            return predicted_data
+            
 
 
 
