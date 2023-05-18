@@ -14,7 +14,7 @@ uploaded_file = st.file_uploader("Upload a CSV file", type="csv")
 # Check if a file is uploaded
 if uploaded_file is not None:
     # Read the CSV file
-    df = pd.read_csv(uploaded_file)
+    df = pd.read_csv(uploaded_file , index_col='time_interval')
 
     # Display the uploaded data
     st.subheader("Uploaded Data")
