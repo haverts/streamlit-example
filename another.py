@@ -78,7 +78,7 @@ def main():
                 x_train.append(train_data[i-8784:i, 0])
                 y_train.append(train_data[i, 0])
             x_train, y_train = np.array(x_train), np.array(y_train)
-            x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+            
 
             # Create and train LSTM model
             lstm_model = create_lstm_model()
