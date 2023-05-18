@@ -9,20 +9,6 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 from pmdarima.arima import auto_arima
 
-import tensorflow as tf
-
-# Configure TensorFlow to use TensorRT
-tf.config.experimental.set_memory_growth(tf.config.list_physical_devices('GPU')[0], True)
-tf.config.experimental.set_virtual_device_configuration(tf.config.list_physical_devices('GPU')[0], [
-    tf.config.experimental.VirtualDeviceConfiguration(memory_limit=8192)
-])
-tf.config.experimental.set_visible_devices(tf.config.list_physical_devices('GPU')[0], 'GPU')
-
-# Enable TensorRT optimization
-tf.config.experimental.enable_tensor_rt()
-
-# Rest of your TensorFlow code...
-
 
 # Function to simplify data to hourly intervals
 def simplify_to_hourly(data):
@@ -30,27 +16,6 @@ def simplify_to_hourly(data):
     hourly_data = data.resample('1H').mean().ffill()
     return hourly_data
 
-# Function to create LSTM model
-def create_lstm_model():
-    model = Sequential()
-    model.add(LSTM(units=50, return_sequences=True, input_shape=(8784, 1)))
-    model.add(LSTM(units=50))
-    model.add(Dense(1))
-    model.compile(optimizer='adam', loss='mean_squared_error')
-    return model
-
-# Function to create SARIMA model
-def create_sarima_model(data):
-    model = auto_arima(data, seasonal=True, m=4392)
-    return model
-
-# Function to plot the forecast
-def plot_forecast(data, forecast):
-    fig = make_subplots(rows=2, cols=1)
-    fig.add_trace(go.Scatter(x=data.index, y=data['avg_lmp'], name='Actual'))
-    fig.add_trace(go.Scatter(x=forecast.index, y=forecast['Prediction'], name='Forecast'))
-    fig.update_layout(height=600, width=800, title_text='Forecast')
-    st.plotly_chart(fig)
 
 # Streamlit app
 def main():
@@ -82,6 +47,9 @@ def main():
         st.header('Model Forecast')
         if model == 'LSTM':
             # Data scaling
+            
+            train_data = data[:-4392]
+            test_data = data[-4392:]
             scaler = MinMaxScaler()
             scaled_data = scaler.fit_transform(simplified_data)
 
@@ -117,22 +85,15 @@ def main():
             predicted_data = model.predict(x_test)
             predicted_data = scaler.inverse_transform(predicted_data)
             
-
-
-
         elif model == 'SARIMA':
-            # Create and fit SARIMA model
-            sarima_model = create_sarima_model(simplified_data)
-            sarima_model.fit(simplified_data)
 
-            # Forecasting
-            predicted_data = sarima_model.predict(n_periods=len(simplified_data))
-            predicted_data = pd.Series(predicted_data, index=simplified_data.index)
 
         # Plot forecast
-        forecast = simplified_data.copy()
-        forecast['avg_lmp'] = predicted_data
-        plot_forecast(simplified_data, forecast)
+        trace1 = go.Scatter(x=df.index, y=df.avg_lmp, name='Actual')
+        trace2 = go.Scatter(x=list(lstm_predictions.index), y=lstm_predictions.avg_lmp, name='LSTM')
+        layout = go.Layout(title='Actual vs Forecast LMP')
+        fig = go.Figure(data=[trace1, trace2], layout=layout)
+        fig.show()
 
 if __name__ == '__main__':
     main()
