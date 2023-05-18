@@ -9,6 +9,21 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 from pmdarima.arima import auto_arima
 
+import tensorflow as tf
+
+# Configure TensorFlow to use TensorRT
+tf.config.experimental.set_memory_growth(tf.config.list_physical_devices('GPU')[0], True)
+tf.config.experimental.set_virtual_device_configuration(tf.config.list_physical_devices('GPU')[0], [
+    tf.config.experimental.VirtualDeviceConfiguration(memory_limit=8192)
+])
+tf.config.experimental.set_visible_devices(tf.config.list_physical_devices('GPU')[0], 'GPU')
+
+# Enable TensorRT optimization
+tf.config.experimental.enable_tensor_rt()
+
+# Rest of your TensorFlow code...
+
+
 # Function to simplify data to hourly intervals
 def simplify_to_hourly(data):
     data = data.interpolate(method='linear')
