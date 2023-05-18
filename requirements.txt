@@ -2,5 +2,5 @@ altair
 pandas
 streamlit
 statsmodels
-sklearn
+scikit-learn
 matplotlib
