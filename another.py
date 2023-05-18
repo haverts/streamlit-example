@@ -18,7 +18,7 @@ def simplify_to_hourly(data):
 # Function to create LSTM model
 def create_lstm_model():
     model = Sequential()
-    model.add(LSTM(units=50, return_sequences=True, input_shape=(24, 1)))
+    model.add(LSTM(units=50, return_sequences=True, input_shape=(8784, 1)))
     model.add(LSTM(units=50))
     model.add(Dense(1))
     model.compile(optimizer='adam', loss='mean_squared_error')
@@ -26,7 +26,7 @@ def create_lstm_model():
 
 # Function to create SARIMA model
 def create_sarima_model(data):
-    model = auto_arima(data, seasonal=True, m=12)
+    model = auto_arima(data, seasonal=True, m=4392)
     return model
 
 # Function to plot the forecast
@@ -74,8 +74,8 @@ def main():
             train_data = scaled_data[:int(0.9*len(scaled_data))]
             x_train = []
             y_train = []
-            for i in range(24, len(train_data)):
-                x_train.append(train_data[i-24:i, 0])
+            for i in range(, len(train_data)):
+                x_train.append(train_data[i-8784:i, 0])
                 y_train.append(train_data[i, 0])
             x_train, y_train = np.array(x_train), np.array(y_train)
             x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
@@ -88,8 +88,8 @@ def main():
             test_data = scaled_data[int(0.9*len(scaled_data)):]
             x_test = []
             y_test = simplified_data[int(0.9*len(scaled_data)):]
-            for i in range(24, len(test_data)):
-                x_test.append(test_data[i-24:i, 0])
+            for i in range(8784, len(test_data)):
+                x_test.append(test_data[i-8784:i, 0])
             x_test = np.array(x_test)
             x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
             predicted_data = lstm_model.predict(x_test)
