@@ -47,7 +47,7 @@ def main():
         forecast = generate_forecast(data, scaler)
         
         # Create hourly timestamps for x-axis
-        start_time = pd.to_datetime(data.index[-1]) + pd.Timedelta(minutes=5)
+        start_time = df.index[-1] + pd.Timedelta(minutes=5)
         hourly_timestamps = pd.date_range(start=start_time, periods=12, freq='H')
         
         # Plot the forecast
