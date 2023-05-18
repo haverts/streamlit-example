@@ -85,6 +85,13 @@ def main():
             predicted_data = model.predict(x_test)
             predicted_data = scaler.inverse_transform(predicted_data)
             
+              # Plot forecast
+            trace1 = go.Scatter(x=df.index, y=df.avg_lmp, name='Actual')
+            trace2 = go.Scatter(x=list(lstm_predictions.index), y=lstm_predictions.avg_lmp, name='LSTM')
+            layout = go.Layout(title='Actual vs Forecast LMP')
+            fig = go.Figure(data=[trace1, trace2], layout=layout)
+            fig.show()
+            
         elif model == 'SARIMA':
                         # Data scaling
             
@@ -106,6 +113,7 @@ def main():
                 y_train.append(train_data[i, 0])
             x_train, y_train = np.array(x_train), np.array(y_train)
             x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+            
 
             # Create and train LSTM model
             model = Sequential()
@@ -124,12 +132,7 @@ def main():
             x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
             predicted_data = model.predict(x_test)
             predicted_data = scaler.inverse_transform(predicted_data)
-    # Plot forecast
-    trace1 = go.Scatter(x=df.index, y=df.avg_lmp, name='Actual')
-    trace2 = go.Scatter(x=list(lstm_predictions.index), y=lstm_predictions.avg_lmp, name='LSTM')
-    layout = go.Layout(title='Actual vs Forecast LMP')
-    fig = go.Figure(data=[trace1, trace2], layout=layout)
-    fig.show()
+
 
 
 if __name__ == '__main__':
