@@ -6,3 +6,4 @@ scikit-learn
 matplotlib
 tensorflow
 plotly
+pmdarima
