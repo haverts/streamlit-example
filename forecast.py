@@ -27,7 +27,7 @@ if uploaded_file is not None:
     # Configure model parameters
     look_back = 12  # Number of previous time steps to use as input for predicting the next time step
     units = 50  # Number of LSTM units
-    epochs = 100  # Number of training epochs
+    epochs = 10  # Number of training epochs
 
     # Prepare the training data
     train_size = int(len(scaled_data) * 0.8)
