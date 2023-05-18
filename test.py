@@ -9,7 +9,7 @@ from tensorflow.keras.layers import LSTM, Dense
 # Perform necessary data preprocessing
 def preprocess_data(data):
     scaler = MinMaxScaler()
-    data['ScaledValue'] = scaler.fit_transform(df['avg_lmp'].values.reshape(-1, 1))
+    data['ScaledValue'] = scaler.fit_transform(data['avg_lmp'].values.reshape(-1, 1))
     return data, scaler
 
 def create_lstm_model():
@@ -20,7 +20,7 @@ def create_lstm_model():
     return model
 
 def create_sarima_model():
-    model = SARIMAX(data['avg_lmp'], order=(1, 0, 0), seasonal_order=(1, 1, 0, 4392))
+    model = SARIMAX(df['avg_lmp'], order=(1, 0, 0), seasonal_order=(1, 1, 0, 4392))
     model = model.fit()
     return model
 
