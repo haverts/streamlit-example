@@ -49,13 +49,13 @@ def main():
         data['time_interval'] = pd.to_datetime(data['time_interval'])
         data.set_index('time_interval', inplace=True)
         st.success('Data uploaded successfully!')
-        st.subheader('Data Preview')
+        st.subheader('Data Preview in 5min interval')
         st.write(data.head())
 
         # Data simplification
         st.header('Market Energy Price')
         simplified_data = simplify_to_hourly(data)
-        st.subheader('Simplified Data Preview')
+        st.subheader('Simplified Data Preview in Hourly')
         st.write(simplified_data.head())
 
         # Model selection
