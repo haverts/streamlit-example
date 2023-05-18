@@ -9,7 +9,7 @@ from tensorflow.keras.layers import LSTM, Dense
 # Perform necessary data preprocessing
 def preprocess_data(data):
     scaler = MinMaxScaler()
-    data['ScaledValue'] = scaler.fit_transform(data['avg_lmp'].values.reshape(-1, 1))
+    data['ScaledValue'] = scaler.fit_transform(df['avg_lmp'].values.reshape(-1, 1))
     return data, scaler
 
 def create_lstm_model():
