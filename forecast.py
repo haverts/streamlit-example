@@ -22,7 +22,7 @@ if uploaded_file is not None:
 
     # Preprocess the data
     scaler = MinMaxScaler(feature_range=(0, 1))
-    scaled_data = scaler.fit_transform(df["Value"].values.reshape(-1, 1))
+    scaled_data = scaler.fit_transform(df["avg_lmp"].values.reshape(-1, 1))
 
     # Configure model parameters
     look_back = 12  # Number of previous time steps to use as input for predicting the next time step
