@@ -31,7 +31,7 @@ def create_sarima_model(data):
 # Function to plot the forecast
 def plot_forecast(data, forecast):
     fig = make_subplots(rows=2, cols=1)
-    fig.add_trace(go.Scatter(x=data.index, y=data['Value'], name='Actual'))
+    fig.add_trace(go.Scatter(x=data.index, y=data['avg_lmp'], name='Actual'))
     fig.add_trace(go.Scatter(x=forecast.index, y=forecast['Prediction'], name='Forecast'))
     fig.update_layout(height=600, width=800, title_text='Forecast')
     st.plotly_chart(fig)
@@ -46,14 +46,14 @@ def main():
     uploaded_file = st.file_uploader('Upload CSV file', type=['csv'])
     if uploaded_file is not None:
         data = pd.read_csv(uploaded_file)
-        data['Timestamp'] = pd.to_datetime(data['Timestamp'])
-        data.set_index('Timestamp', inplace=True)
+        data['time_interval'] = pd.to_datetime(data['time_interval'])
+        data.set_index('time_interval', inplace=True)
         st.success('Data uploaded successfully!')
         st.subheader('Data Preview')
         st.write(data.head())
 
         # Data simplification
-        st.header('Data Simplification')
+        st.header('Market Energy Price')
         simplified_data = simplify_to_hourly(data)
         st.subheader('Simplified Data Preview')
         st.write(simplified_data.head())
