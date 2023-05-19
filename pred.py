@@ -39,13 +39,13 @@ def build_model(X, y):
     model.add(LSTM(units=50))
     model.add(Dense(units=1))
     model.compile(optimizer='adam', loss='mean_squared_error')
-    model.fit(X, y, epochs=5, batch_size=32)
+    model.fit(X, y, epochs=50, batch_size=32)
     return model
 
 # Function to forecast data
 def forecast_data(model, last_x, scaler):
     future_data = []
-    for i in range(24*7):
+    for i in range(24):
         prediction = model.predict(np.array([last_x]))
         future_data.append(prediction[0])
         last_x = np.concatenate((last_x[1:], prediction), axis=0)
@@ -72,6 +72,14 @@ def main():
         last_x = X[-1]
         future_data = forecast_data(model, last_x, scaler)
         forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data) + 1, freq='H')[1:]
+        
+        # Create DataFrame for forecasted data
+        forecast_df = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value': future_data[:, 0]})
+        forecast_df.set_index('time_interval', inplace=True)
+
+        # Display forecasted data
+        st.subheader('Forecasted Data')
+        st.write(forecast_df)
 
         # Plot forecasted data
         fig = go.Figure()
