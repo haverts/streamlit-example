@@ -97,7 +97,9 @@ def main():
             steps = 24
             future_data = forecast_arima(model, steps)
 
-        forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data) + 1, freq='H')[1:]
+        
+        forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data) + 1, freq='H')[1:][::-1]
+
         
         # Create DataFrame for forecasted data
         forecast_df = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value': future_data[:, 0]})
