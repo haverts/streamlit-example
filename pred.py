@@ -1,10 +1,10 @@
-    import numpy as np
-    import pandas as pd
-    import streamlit as st
-    from sklearn.preprocessing import MinMaxScaler
-    from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import LSTM, Dense
-    import plotly.graph_objects as go
+import numpy as np
+import pandas as pd
+import streamlit as st
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+import plotly.graph_objects as go
 
     # Function to preprocess the data
     def preprocess_data(df):
