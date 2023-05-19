@@ -41,7 +41,13 @@ def build_model(X, y):
 # Function to forecast data
 def forecast_data(model, last_x, scaler, steps):
     future_data = model.forecast(steps)[0]
-    future_data = np.reshape(future_data, (future_data.shape[0], 1))
+    future_data = np.array(future_data)
+    
+    if future_data.shape[0] == 1:
+        future_data = future_data.reshape(1, 1)
+    else:
+        future_data = future_data.reshape(future_data.shape[0], 1)
+        
     future_data = scaler.inverse_transform(future_data)
     return future_data
 
@@ -59,7 +65,7 @@ def main():
         X, y, scaler = preprocess_data(df)
         model = build_model(X, y)
 
-        # Forecast data for 1 day (7*24)
+        # Forecast data for 1 day (24 steps)
         last_x = X[-1]
         future_data = forecast_data(model, last_x, scaler, 24)
         forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data) + 1, freq='H')[1:]
