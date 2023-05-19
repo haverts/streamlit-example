@@ -134,7 +134,7 @@ def main():
 
             # Combine ARIMA forecasts
             forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data_arima + 1, freq='H')[1:]
-            forecast_df_arima = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'ARIMA Forecasted Value': future_data_arima[:, 0]})
+            forecast_df_arima = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted ARIMA Value': future_arima_data[:, 0]})
             forecast_df_arima.set_index('Delivery Interval', inplace=True)
 
             # Display forecasted data
