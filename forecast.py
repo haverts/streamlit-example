@@ -16,7 +16,7 @@ def preprocess_data(df):
 
     # Prepare the data for ARIMA model
     # User input for forecasting steps
-    lookback = 24*7
+    lookback = 2160
     X = []
     y = []
     for i in range(lookback, len(scaled_data)):
@@ -61,7 +61,7 @@ def main():
 
         # Forecast data for 1 day (7*24)
         last_x = X[-1]
-        future_data = forecast_data(model, last_x, scaler, 7*24)
+        future_data = forecast_data(model, last_x, scaler, 24)
         forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data) + 1, freq='H')[1:]
         
         # Create DataFrame for forecasted data
