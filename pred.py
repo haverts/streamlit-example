@@ -127,19 +127,21 @@ def main():
         st.subheader('LSTM Forecasted Data')
         forecast_df_lstm_placeholder = st.empty()
         forecast_df_lstm_placeholder.write(forecast_df_lstm)
+        forecast_df_lstm_placeholder.markdown('<style>th { background-color: ##00004D; color: white; }</style>', unsafe_allow_html=True)
 
         
         # Display ARIMA forecasted data
         st.subheader('ARIMA Forecasted Data')
         forecast_df_arima_placeholder = st.empty()
         forecast_df_arima_placeholder.write(forecast_df_arima)
+        forecast_df_arima_placeholder.markdown('<style>th { background-color: ##00004D; color: white; }</style>', unsafe_allow_html=True)
 
 
         # Plot forecasted data
         future_data_arima_y = future_data_lstm[:, 0].tolist()
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data_lstm[:, 0], name='Forecasted Data (LSTM)', line=dict(color='blue')))
-        fig.add_trace(go.Scatter(x=test_data.index, y=future_data_arima_y, name='Forecasted Data (ARIMA)', line=dict(color='red')))
+        fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data_arima_y, name='Forecasted Data (ARIMA)', line=dict(color='red')))
         fig.update_layout(
             title='1-Day Forecast using LSTM and ARIMA',
             xaxis_title='Delivery Interval',
