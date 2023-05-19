@@ -136,9 +136,10 @@ def main():
 
 
         # Plot forecasted data
+        future_data_arima_y = future_data_lstm[:, 0].tolist()
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data_lstm[:, 0], name='Forecasted Data (LSTM)', line=dict(color='blue')))
-        fig.add_trace(go.Scatter(x=test_data.index, y=future_data_arima, name='Forecasted Data (ARIMA)', line=dict(color='red')))
+        fig.add_trace(go.Scatter(x=test_data.index, y=future_data_arima_y, name='Forecasted Data (ARIMA)', line=dict(color='red')))
         fig.update_layout(
             title='1-Day Forecast using LSTM and ARIMA',
             xaxis_title='Delivery Interval',
