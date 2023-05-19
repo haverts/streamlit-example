@@ -153,11 +153,5 @@ def main():
         fig.update_yaxes(showgrid=True, gridcolor='lightgray')  # Customize grid color
         st.plotly_chart(fig)
 
-
-
-        # Calculate RMSE for the ARIMA model
-        rmse_arima = np.sqrt(mean_squared_error(test_data, future_data_arima))
-        st.subheader('ARIMA RMSE')
-        st.write(rmse_arima)
 if __name__ == '__main__':
     main()
