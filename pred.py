@@ -1,85 +1,83 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 import streamlit as st
+from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
-from sklearn.preprocessing import MinMaxScaler
 import plotly.graph_objects as go
 
+# Function to preprocess the data
+def preprocess_data(df):
+    # Convert to hourly interval
+    df_hourly = df.resample('1H').mean().interpolate()
 
-# Main function
+    # Scale the data
+    scaler = MinMaxScaler()
+    scaled_data = scaler.fit_transform(df_hourly)
+
+    # Prepare the data for LSTM model
+    lookback = 12  # Number of previous hours to use for prediction
+
+    X = []
+    y = []
+    for i in range(lookback, len(scaled_data)):
+        X.append(scaled_data[i-lookback:i])
+        y.append(scaled_data[i])
+
+    X = np.array(X)
+    y = np.array(y)
+
+    # Reshape X for LSTM input shape (samples, time steps, features)
+    X = np.reshape(X, (X.shape[0], X.shape[1], 1))
+
+    return X, y, scaler
+
+# Function to build and train the LSTM model
+def build_model(X, y):
+    model = Sequential()
+    model.add(LSTM(units=50, return_sequences=True, input_shape=(X.shape[1], 1)))
+    model.add(LSTM(units=50))
+    model.add(Dense(units=1))
+    model.compile(optimizer='adam', loss='mean_squared_error')
+    model.fit(X, y, epochs=5, batch_size=32)
+    return model
+
+# Function to forecast data
+def forecast_data(model, last_x, scaler):
+    future_data = []
+    for i in range(24):
+        prediction = model.predict(np.array([last_x]))
+        future_data.append(prediction[0])
+        last_x = np.concatenate((last_x[1:], prediction), axis=0)
+
+    future_data = np.array(future_data)
+    future_data = scaler.inverse_transform(future_data)
+    return future_data
+
+# Streamlit app
 def main():
-    st.title("LSTM Forecasting")
-    file = st.file_uploader("Upload CSV file", type="csv")
-    if file is not None:
-        df = pd.read_csv(file)
-        df['TIME_INTERVAL'] = pd.to_datetime(df['TIME_INTERVAL'])
-        df.set_index('TIME_INTERVAL', inplace=True)
+    st.title('LSTM Data Forecasting')
 
-        # Convert to hourly interval
-        df_hourly = df.resample('1H').mean().interpolate()
+    # File upload
+    uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+        df['time_interval'] = pd.to_datetime(df['time_interval'])
+        df.set_index('time_interval', inplace=True)
 
-        # Scale the data
-        scaler = MinMaxScaler()
-        scaled_data = scaler.fit_transform(df_hourly)
-        st.success('Data uploaded successfully!')
-        st.subheader('Data Preview in 5min interval')
-        st.write(df.head())
+        X, y, scaler = preprocess_data(df)
+        model = build_model(X, y)
 
+        # Forecast data for 1 day
+        last_x = X[-1]
+        future_data = forecast_data(model, last_x, scaler)
+        forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data) + 1, freq='H')[1:]
 
-        # Step 2: Prepare the data for LSTM model
-        lookback = 24  # Number of previous hours to use for prediction
-
-        X = []
-        y = []
-        for i in range(lookback, len(scaled_data)):
-            X.append(scaled_data[i-lookback:i])
-            y.append(scaled_data[i])
-
-        X = np.array(X)
-        y = np.array(y)
-
-        # Reshape X for LSTM input shape (samples, time steps, features)
-        X = np.reshape(X, (X.shape[0], X.shape[1], 1))
-
-        # Step 3: Build the LSTM model
-        model = Sequential()
-        model.add(LSTM(units=50, return_sequences=True, input_shape=(X.shape[1], 1)))
-        model.add(LSTM(units=50))
-        model.add(Dense(units=1))
-
-        model.compile(optimizer='adam', loss='mean_squared_error')
-
-        # Step 4: Train the LSTM model
-        model.fit(X, y, epochs=5, batch_size=32)
-
-        # Step 5: Forecast the next 1 year of data
-        future_data = []
-        last_x = scaled_data[-lookback:]
-        for i in range(182 * 24):
-            prediction = model.predict(np.array([last_x]))
-            future_data.append(prediction[0])
-            last_x = np.concatenate((last_x[1:], prediction), axis=0)
-
-        # Step 6: Inverse scale the forecasted data
-        future_data = np.array(future_data)
-        future_data = scaler.inverse_transform(future_data)
-
-        # Step 7: Create timestamps for the forecasted data
-        start_timestamp = df_hourly.index[-1] + pd.DateOffset(hours=1)
-        forecast_timestamps = pd.date_range(start=start_timestamp, periods=len(future_data), freq='H')
-
-        # Step 8: Plot the forecasted data using Plotly
-        actual_data = df_hourly['avg_lmp']
-        forecasted_data = pd.Series(future_data[:, 0], index=forecast_timestamps)
-
+        # Plot forecasted data
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=actual_data.index, y=actual_data, name='Actual Data'))
-        fig.add_trace(go.Scatter(x=forecasted_data.index, y=forecasted_data, name='Forecasted Data'))
-        fig.update_layout(title='1-Year Forecast using LSTM', xaxis_title='Timestamp', yaxis_title='Value')
-        fig.show()
+        fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data[:, 0], name='Forecasted Data'))
+        fig.update_layout(title='1-Day Forecast using LSTM', xaxis_title='Delivery Interval', yaxis_title='Average LMP')
+        st.plotly_chart(fig)
 
-            
-# Run the app
 if __name__ == '__main__':
     main()
