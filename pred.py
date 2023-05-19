@@ -111,13 +111,17 @@ def main():
         future_data_lstm = forecast_data(model, last_x, scaler)
         forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data_lstm) + 1, freq='H')[1:]
 
-        # Create DataFrame for LSTM forecasted data
-        forecast_df_lstm = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value (LSTM)': future_data_lstm[:, 0]})
-        forecast_df_lstm.set_index('Delivery Interval', inplace=True)
-
         # Train and forecast using ARIMA model
         arima_model, test_data = build_arima_model(df)
         future_data_arima = forecast_arima_data(arima_model, test_data)
+        
+        # Create DataFrame for LSTM forecasted data
+        forecast_df_lstm = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value (LSTM)': future_data_lstm[:, 0]})
+        forecast_df_lstm.set_index('Delivery Interval', inplace=True)
+        
+         # Create DataFrame for ARIMA forecasted data
+        forecast_df_arima = pd.DataFrame({'Delivery Interval': test_data.index, 'Forecasted Value (ARIMA)': future_data_arima})
+        forecast_df_arima.set_index('Delivery Interval', inplace=True)
 
         # Display LSTM forecasted data
         st.subheader('LSTM Forecasted Data')
