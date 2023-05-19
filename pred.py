@@ -75,7 +75,7 @@ def main():
         
         # Create DataFrame for forecasted data
         forecast_df = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value': future_data[:, 0]})
-        forecast_df.set_index('time_interval', inplace=True)
+        forecast_df.set_index('Delivery Interval', inplace=True)
 
         # Display forecasted data
         st.subheader('Forecasted Data')
