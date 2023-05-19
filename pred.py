@@ -115,28 +115,38 @@ def main():
         forecast_df_lstm = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value (LSTM)': future_data_lstm[:, 0]})
         forecast_df_lstm.set_index('Delivery Interval', inplace=True)
 
-        # Display LSTM forecasted data
-        st.subheader('LSTM Forecasted Data')
-        st.write(forecast_df_lstm)
-
         # Train and forecast using ARIMA model
         arima_model, test_data = build_arima_model(df)
         future_data_arima = forecast_arima_data(arima_model, test_data)
 
-        # Create DataFrame for ARIMA forecasted data
-        forecast_df_arima = pd.DataFrame({'Delivery Interval': test_data.index, 'Forecasted Value (ARIMA)': future_data_arima})
-        forecast_df_arima.set_index('Delivery Interval', inplace=True)
+        # Display LSTM forecasted data
+        st.subheader('LSTM Forecasted Data')
+        forecast_df_lstm_placeholder = st.empty()
+        forecast_df_lstm_placeholder.write(forecast_df_lstm)
 
         # Display ARIMA forecasted data
         st.subheader('ARIMA Forecasted Data')
-        st.write(forecast_df_arima)
+        forecast_df_arima_placeholder = st.empty()
+        forecast_df_arima_placeholder.write(forecast_df_arima)
 
         # Plot forecasted data
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data_lstm[:, 0], name='Forecasted Data (LSTM)'))
-        fig.add_trace(go.Scatter(x=test_data.index, y=future_data_arima, name='Forecasted Data (ARIMA)'))
-        fig.update_layout(title='1-Day Forecast using LSTM and ARIMA', xaxis_title='Delivery Interval', yaxis_title='Average LMP')
+        fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data_lstm[:, 0], name='Forecasted Data (LSTM)', line=dict(color='blue')))
+        fig.add_trace(go.Scatter(x=test_data.index, y=future_data_arima, name='Forecasted Data (ARIMA)', line=dict(color='red')))
+        fig.update_layout(
+            title='1-Day Forecast using LSTM and ARIMA',
+            xaxis_title='Delivery Interval',
+            yaxis_title='Average LMP',
+            legend=dict(x=0, y=1, bgcolor='rgba(255, 255, 255, 0.5)'),
+            plot_bgcolor='rgba(0, 0, 0, 0)',  # Set plot background color to transparent
+            paper_bgcolor='rgba(0, 0, 0, 0)',  # Set paper background color to transparent
+            font=dict(color='black')
+        )
+        fig.update_xaxes(showgrid=True, gridcolor='lightgray')  # Customize grid color
+        fig.update_yaxes(showgrid=True, gridcolor='lightgray')  # Customize grid color
         st.plotly_chart(fig)
+
+
 
         # Calculate RMSE for the ARIMA model
         rmse_arima = np.sqrt(mean_squared_error(test_data, future_data_arima))
