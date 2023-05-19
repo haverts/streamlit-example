@@ -5,6 +5,7 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 import plotly.graph_objects as go
+import statsmodels.api as sm
 
 # Function to preprocess the data
 def preprocess_data(df):
@@ -82,12 +83,38 @@ def main():
         # Display forecasted data
         st.subheader('Forecasted Data')
         st.write(forecast_df)
-
+        
         # Plot forecasted data
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data[:, 0], name='Forecasted Data'))
         fig.update_layout(title='1-Day Forecast using LSTM', xaxis_title='Delivery Interval', yaxis_title='Average LMP')
         st.plotly_chart(fig)
+        
+                # Preprocess the data
+        series = preprocess_data(df)
+
+        # Fit an ARIMA model
+        model = sm.tsa.ARIMA(series, order=(1, 0, 0))  # Example order (p, d, q)
+        results = model.fit()
+        
+        # Forecast data for 1 day
+        forecast_steps = 24  # Number of steps to forecast
+        forecast = results.forecast(steps=forecast_steps)
+
+        # Convert the forecasted values to a numpy array
+        future_data = np.array(forecast[0])
+        
+                # Inverse transform the forecasted data
+        future_data = scaler.inverse_transform(future_data.reshape(-1, 1))
+        # Display forecasted data
+        st.subheader('ARIMA Forecasted Data')
+        st.write(future_data)
+
+        # Plot forecasted data
+        fig = px.line(x=forecast_timestamps, y=future_data[:, 0], labels={'x': 'Delivery Interval', 'y': 'Forecasted Value'})
+        st.plotly_chart(fig)
+
+
 
 if __name__ == '__main__':
     main()
