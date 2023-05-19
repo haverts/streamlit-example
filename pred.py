@@ -84,8 +84,9 @@ def main():
         st.write(forecast_df)
 
         # Plot forecasted data
-        fig = px.line(forecast_df, x=forecast_df.index, y='Forecasted Value', title='1-Day Forecast')
-        fig.update_layout(xaxis_title='Delivery Interval', yaxis_title='Value')
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data[:, 0], name='Forecasted Data'))
+        fig.update_layout(title='1-Day Forecast using LSTM', xaxis_title='Delivery Interval', yaxis_title='Average LMP')
         st.plotly_chart(fig)
 
 if __name__ == '__main__':
