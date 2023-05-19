@@ -100,18 +100,23 @@ def main():
         # Forecast data for 1 day
         forecast_steps = 24  # Number of steps to forecast
         forecast = results.forecast(steps=forecast_steps)
+        
 
         # Convert the forecasted values to a numpy array
-        future_data = np.array(forecast[0])
+        future_data_arima = np.array(forecast[0])
         
                 # Inverse transform the forecasted data
-        future_data = scaler.inverse_transform(future_data.reshape(-1, 1))
+        future_data_arima = scaler.inverse_transform(future_data_arima.reshape(-1, 1))
         # Display forecasted data
         st.subheader('ARIMA Forecasted Data')
-        st.write(future_data)
+                # Create DataFrame for forecasted data
+        forecast_df_arima = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value': future_data_arima[:, 0]})
+        forecast_df_arima.set_index('Delivery Interval', inplace=True)
 
         # Plot forecasted data
-        fig = px.line(x=forecast_timestamps, y=future_data[:, 0], labels={'x': 'Delivery Interval', 'y': 'Forecasted Value'})
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=forecast_timestamps, y=forecast_df_arima[:, 0], name='Forecasted Data'))
+        fig.update_layout(title='1-Day Forecast using LSTM', xaxis_title='Delivery Interval', yaxis_title='Average LMP')
         st.plotly_chart(fig)
 
 
