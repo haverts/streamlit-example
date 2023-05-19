@@ -11,16 +11,16 @@ uploaded_file = st.file_uploader("Upload CSV file", type="csv")
 if uploaded_file is not None:
     data = pd.read_csv(uploaded_file)
     # Assuming your data has a 'timestamp' column
-    data['timestamp'] = pd.to_datetime(data['timestamp'])
-    data = data.set_index('timestamp')
+    data['time_interval'] = pd.to_datetime(data['time_interval'])
+    data = data.set_index('time_interval')
 
     # Step 2: Preprocess the Data
     # Convert to hourly intervals if necessary
     # Assuming your data is already at hourly intervals
 
     # Split into training and testing sets
-    train_data = data[:-24]  # Use the first 6 months for training (assuming 24 hours per day)
-    test_data = data[-24:]  # Use the last day for testing (24 hours)
+    train_data = data[:-1728]  # Use the first 6 months for training (assuming 24 hours per day)
+    test_data = data[-1728:]  # Use the last day for testing (24 hours)
 
     # Step 3: ARIMA Model
     # Fit ARIMA model to training data
