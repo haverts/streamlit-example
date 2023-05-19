@@ -46,8 +46,8 @@ def build_model(X, y):
 # Function to forecast data
 def forecast_data(model, last_x, scaler):
     future_data = []
-    num_days = st.number_input('Enter the number of day/s to forecast:', min_value=1, max_value=10000, value=1, step=1) # Number of previous days to use for prediction
-    if lookback > 0:
+    num_days = st.number_input('Enter the number of day/s to forecast:', min_value=1, max_value=10000, value=0, step=1) # Number of previous days to use for prediction
+    if num_days > 0:
             # Wait for user to input forecast lookback
         while st.button('Forecast') == False:
              pass
