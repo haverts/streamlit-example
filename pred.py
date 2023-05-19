@@ -5,6 +5,8 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 import plotly.graph_objects as go
+import statsmodels.api as sm
+from statsmodels.tsa.arima.model import ARIMA
 
 # Function to preprocess the data
 def preprocess_data(df):
@@ -33,7 +35,7 @@ def preprocess_data(df):
     return X, y, scaler
 
 # Function to build and train the LSTM model
-def build_model(X, y):
+def build_lstm_model(X, y):
     model = Sequential()
     model.add(LSTM(units=50, return_sequences=True, input_shape=(X.shape[1], 1)))
     model.add(LSTM(units=50))
@@ -42,8 +44,14 @@ def build_model(X, y):
     model.fit(X, y, epochs=10, batch_size=32)
     return model
 
-# Function to forecast data
-def forecast_data(model, last_x, scaler):
+# Function to build and train the ARIMA model
+def build_arima_model(data):
+    model = ARIMA(data, order=(1, 0, 0))
+    model_fit = model.fit()
+    return model_fit
+
+# Function to forecast data using LSTM
+def forecast_lstm(model, last_x, scaler):
     future_data = []
 
     for i in range(7*24):
@@ -55,9 +63,14 @@ def forecast_data(model, last_x, scaler):
     future_data = scaler.inverse_transform(future_data)
     return future_data
 
+# Function to forecast data using ARIMA
+def forecast_arima(model, steps):
+    forecast_data = model.forecast(steps=steps)[0]
+    return forecast_data
+
 # Streamlit app
 def main():
-    st.title('LSTM Data Forecasting')
+    st.title('Time Series Forecasting')
 
     # File upload
     uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
@@ -67,26 +80,17 @@ def main():
         df.set_index('time_interval', inplace=True)
 
         X, y, scaler = preprocess_data(df)
-        model = build_model(X, y)
 
-        # Forecast data for 1 day
-        last_x = X[-1]
-        future_data = forecast_data(model, last_x, scaler)
-        forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data) + 1, freq='H')[1:]
-        
-        # Create DataFrame for forecasted data
-        forecast_df = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value': future_data[:, 0]})
-        forecast_df.set_index('Delivery Interval', inplace=True)
+        # Model selection
+        model_type = st.selectbox("Select model", options=["LSTM", "ARIMA"])
 
-        # Display forecasted data
-        st.subheader('Forecasted Data')
-        st.write(forecast_df)
+        if model_type == "LSTM":
+            model = build_lstm_model(X, y)
 
-        # Plot forecasted data
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data[:, 0], name='Forecasted Data'))
-        fig.update_layout(title='1-Day Forecast using LSTM', xaxis_title='Delivery Interval', yaxis_title='Average LMP')
-        st.plotly_chart(fig)
+            # Forecast data for 1 day
+            last_x = X[-1]
+            future_data = forecast_lstm(model, last_x, scaler)
+        else:
+            model = build_arima_model(df['value'])
 
-if __name__ == '__main__':
-    main()
+            # Forecast
