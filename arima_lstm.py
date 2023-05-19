@@ -52,7 +52,7 @@ def build_lstm_model(X, y):
     model.add(LSTM(units=50))
     model.add(Dense(units=1))
     model.compile(optimizer='adam', loss='mean_squared_error')
-    model.fit(X, y, epochs=10, batch_size=32)
+    model.fit(X, y, epochs=2, batch_size=32)
     return model
 
 # Function to build and train the SARIMA model
@@ -112,13 +112,12 @@ def main():
         forecast_df_sarima = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value (SARIMA)': future_data_sarima[:, 0]})
         forecast_df_lstm.set_index('Delivery Interval', inplace=True)
         forecast_df_sarima.set_index('Delivery Interval', inplace=True)
+        merged_df = pd.merge(forecast_df_lstm, forecast_df_sarima, on='Delivery Interval')
 
         # Display forecasted data
-        st.subheader('LSTM Forecasted Data')
-        st.write(forecast_df_lstm)
+        st.subheader('LSTM and SARIMAX Forecasted Data')
+        st.write(merged_df)
 
-        st.subheader('SARIMA Forecasted Data')
-        st.write(forecast_df_sarima)
 
         # Plot forecasted data
         fig = go.Figure()
