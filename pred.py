@@ -25,9 +25,22 @@ def main():
         st.success('Data uploaded successfully!')
         st.subheader('Data Preview in 5min interval')
         st.write(df.head())
-        
+
+        # Step 1: Load and preprocess the data
+        # Assuming you have a CSV file named 'data.csv' with a 'timestamp' and 'value' column
+        df = pd.read_csv('/content/sample_data/dipcef2.csv')
+        df['TIME_INTERVAL'] = pd.to_datetime(df['TIME_INTERVAL'])
+        df.set_index('TIME_INTERVAL', inplace=True)
+
+        # Convert to hourly interval
+        df_hourly = df.resample('1H').mean().interpolate()
+
+        # Scale the data
+        scaler = MinMaxScaler()
+        scaled_data = scaler.fit_transform(df_hourly)
+
         # Step 2: Prepare the data for LSTM model
-        lookback = 8736  # Number of previous hours to use for prediction
+        lookback = 24  # Number of previous hours to use for prediction
 
         X = []
         y = []
@@ -55,7 +68,7 @@ def main():
         # Step 5: Forecast the next 1 year of data
         future_data = []
         last_x = scaled_data[-lookback:]
-        for i in range(182.5 * 24):
+        for i in range(365 * 24):
             prediction = model.predict(np.array([last_x]))
             future_data.append(prediction[0])
             last_x = np.concatenate((last_x[1:], prediction), axis=0)
