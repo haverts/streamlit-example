@@ -1,71 +1,82 @@
-import streamlit as st
-import pandas as pd
 import numpy as np
+import pandas as pd
+import streamlit as st
 from sklearn.preprocessing import MinMaxScaler
-from keras.models import Sequential
-from keras.layers import LSTM, Dense
+import plotly.graph_objects as go
+from statsmodels.tsa.arima.model import ARIMA
 
-# Set Streamlit app title
-st.title("Time Series Forecasting with LSTM")
+# Function to preprocess the data
+def preprocess_data(df):
+    # Convert to hourly interval
+    df_hourly = df.resample('1H').mean().interpolate()
 
-# Upload CSV file
-uploaded_file = st.file_uploader("Upload a CSV file", type="csv")
+    # Scale the data
+    scaler = MinMaxScaler()
+    scaled_data = scaler.fit_transform(df_hourly)
 
-# Check if a file is uploaded
-if uploaded_file is not None:
-    # Read the CSV file
-    df = pd.read_csv(uploaded_file , index_col=0)
+    # Prepare the data for ARIMA model
+    # User input for forecasting steps
+    lookback = 24*7
+    X = []
+    y = []
+    for i in range(lookback, len(scaled_data)):
+        X.append(scaled_data[i-lookback:i])
+        y.append(scaled_data[i])
 
-    # Display the uploaded data
-    st.subheader("Uploaded Data")
-    st.dataframe(df)
+    X = np.array(X)
+    y = np.array(y)
 
-    # Preprocess the data
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaled_data = scaler.fit_transform(df["avg_lmp"].values.reshape(-1, 1))
+    return X, y, scaler
 
-    # Configure model parameters
-    look_back = 12  # Number of previous time steps to use as input for predicting the next time step
-    units = 50  # Number of LSTM units
-    epochs = 1  # Number of training epochs
+# Function to build and train the ARIMA model
+def build_model(X, y):
+    # Flatten the input data
+    X = X.reshape(X.shape[0], X.shape[1])
+    
+    model = ARIMA(y, order=(5, 1, 0))
+    model_fit = model.fit(disp=False)
+    
+    return model_fit
 
-    # Prepare the training data
-    train_size = int(len(scaled_data) * 0.8)
-    train_data = scaled_data[:train_size]
-    x_train, y_train = [], []
-    for i in range(look_back, len(train_data)):
-        x_train.append(train_data[i - look_back:i, 0])
-        y_train.append(train_data[i, 0])
-    x_train, y_train = np.array(x_train), np.array(y_train)
-    x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+# Function to forecast data
+def forecast_data(model, last_x, scaler, steps):
+    future_data = model.forecast(steps)[0]
+    future_data = np.reshape(future_data, (future_data.shape[0], 1))
+    future_data = scaler.inverse_transform(future_data)
+    return future_data
 
-    # Build the LSTM model
-    model = Sequential()
-    model.add(LSTM(units=units, input_shape=(x_train.shape[1], 1)))
-    model.add(Dense(1))
-    model.compile(loss="mean_squared_error", optimizer="adam")
-    model.fit(x_train, y_train, epochs=epochs, batch_size=1, verbose=2)
+# Streamlit app
+def main():
+    st.title('ARIMA Data Forecasting')
 
-    # Prepare the test data
-    test_data = scaled_data[train_size - look_back:]
-    x_test, y_test = [], []
-    for i in range(look_back, len(test_data)):
-        x_test.append(test_data[i - look_back:i, 0])
-        y_test.append(test_data[i, 0])
-    x_test, y_test = np.array(x_test), np.array(y_test)
-    x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
+    # File upload
+    uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+        df['time_interval'] = pd.to_datetime(df['time_interval'])
+        df.set_index('time_interval', inplace=True)
 
-    # Generate predictions
-    predictions = model.predict(x_test)
-    predictions = scaler.inverse_transform(predictions)
+        X, y, scaler = preprocess_data(df)
+        model = build_model(X, y)
 
-    # Create hourly and daily time series
-    hourly_predictions = pd.Series(predictions.flatten(), index=df.index[train_size:]).resample("H").mean()
-    daily_predictions = pd.Series(predictions.flatten(), index=df.index[train_size:]).resample("D").mean()
+        # Forecast data for 1 day (7*24)
+        last_x = X[-1]
+        future_data = forecast_data(model, last_x, scaler, 7*24)
+        forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data) + 1, freq='H')[1:]
+        
+        # Create DataFrame for forecasted data
+        forecast_df = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value': future_data[:, 0]})
+        forecast_df.set_index('Delivery Interval', inplace=True)
 
-    # Display the forecasted results
-    st.subheader("Hourly Time Series Forecast")
-    st.line_chart(hourly_predictions)
+        # Display forecasted data
+        st.subheader('Forecasted Data')
+        st.write(forecast_df)
 
-    st.subheader("Daily Time Series Forecast")
-    st.line_chart(daily_predictions)
+        # Plot forecasted data
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data[:, 0], name='Forecasted Data'))
+        fig.update_layout(title='1-Day Forecast using ARIMA', xaxis_title='Delivery Interval', yaxis_title='Average LMP')
+        st.plotly_chart(fig)
+
+if __name__ == '__main__':
+    main()
