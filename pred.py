@@ -56,7 +56,7 @@ def main():
         # Step 5: Forecast the next 1 year of data
         future_data = []
         last_x = scaled_data[-lookback:]
-        for i in range(365 * 24):
+        for i in range(182.5 * 24):
             prediction = model.predict(np.array([last_x]))
             future_data.append(prediction[0])
             last_x = np.concatenate((last_x[1:], prediction), axis=0)
