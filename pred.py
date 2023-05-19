@@ -91,6 +91,27 @@ def main():
             last_x = X[-1]
             future_data = forecast_lstm(model, last_x, scaler)
         else:
-            model = build_arima_model(df['value'])
+            model = build_arima_model(df['avg_lmp'])
 
-            # Forecast
+            # Forecast data for 1 day
+            steps = 24
+            future_data = forecast_arima(model, steps)
+
+        forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data) + 1, freq='H')[1:]
+        
+        # Create DataFrame for forecasted data
+        forecast_df = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value': future_data[:, 0]})
+        forecast_df.set_index('Delivery Interval', inplace=True)
+
+        # Display forecasted data
+        st.subheader('Forecasted Data')
+        st.write(forecast_df)
+
+        # Plot forecasted data
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data[:, 0], name='Forecasted Data'))
+        fig.update_layout(title='1-Day Forecast', xaxis_title='Delivery Interval', yaxis_title='Value')
+        st.plotly_chart(fig)
+
+if __name__ == '__main__':
+    main()
