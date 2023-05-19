@@ -1,124 +1,96 @@
 import numpy as np
 import pandas as pd
 import streamlit as st
-from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
+import plotly.graph_objects as go
+import statsmodels.api as sm
+from statsmodels.tsa.arima.model import ARIMA
 
-# Perform necessary data preprocessing
-def preprocess_data(data):
+# Function to preprocess the data
+def preprocess_data(df):
+    # Convert to hourly interval
+    df_hourly = df.resample('1H').mean().interpolate()
+
+    # Scale the data
     scaler = MinMaxScaler()
-    data['ScaledValue'] = scaler.fit_transform(data['avg_lmp'].values.reshape(-1, 1))
-    return data, scaler
+    scaled_data = scaler.fit_transform(df_hourly)
 
-def create_lstm_model():
+    # Prepare the data for LSTM model
+    # User input for forecasting steps
+    lookback = 24*7
+    X = []
+    y = []
+    for i in range(lookback, len(scaled_data)):
+        X.append(scaled_data[i-lookback:i])
+        y.append(scaled_data[i])
+
+    X = np.array(X)
+    y = np.array(y)
+
+    # Reshape X for LSTM input shape (samples, time steps, features)
+    X = np.reshape(X, (X.shape[0], X.shape[1], 1))
+
+    return X, y, scaler
+
+# Function to build and train the LSTM model
+def build_lstm_model(X, y):
     model = Sequential()
-    model.add(LSTM(100, activation='relu', input_shape=(None, 1)))
-    model.add(Dense(1))
-    model.compile(optimizer='adam', loss='mse')
+    model.add(LSTM(units=50, return_sequences=True, input_shape=(X.shape[1], 1)))
+    model.add(LSTM(units=50))
+    model.add(Dense(units=1))
+    model.compile(optimizer='adam', loss='mean_squared_error')
+    model.fit(X, y, epochs=10, batch_size=32)
     return model
 
-def create_sarima_model():
-    model = SARIMAX(data['avg_lmp'], order=(1, 0, 0), seasonal_order=(1, 1, 0, 4392))
-    model = model.fit()
-    return model
+# Function to build and train the ARIMA model
+def build_arima_model(data):
+    model = ARIMA(data, order=(1, 0, 0))
+    model_fit = model.fit()
+    return model_fit
 
-# Define the forecasting function for LSTM
-def lstm_forecast(data, scaler):
-    lstm_model = create_lstm_model()
-    X = np.array(data['ScaledValue']).reshape(-1, 1)
-    lstm_model.fit(X[:-4392], data['ScaledValue'].values[4392:], epochs=10, batch_size=32, verbose=0)
-    forecast = lstm_model.predict(X[-4392:])
-    forecast = scaler.inverse_transform(forecast)
-    return forecast.flatten()
+# Function to forecast data using LSTM
+def forecast_lstm(model, last_x, scaler):
+    future_data = []
 
-# Define the forecasting function for SARIMA
-def sarima_forecast(data):
-    sarima_model = create_sarima_model()
-    sarima_model_fit = sarima_model.fit()
-    forecast = sarima_model_fit.forecast(steps=4392)
-    return forecast
+    for i in range(7*24):
+        prediction = model.predict(np.array([last_x]))
+        future_data.append(prediction[0])
+        last_x = np.concatenate((last_x[1:], prediction), axis=0)
+
+    future_data = np.array(future_data)
+    future_data = scaler.inverse_transform(future_data)
+    return future_data
+
+# Function to forecast data using ARIMA
+def forecast_arima(model, steps):
+    forecast_data = model.forecast(steps=steps)[0]
+    return forecast_data
 
 # Streamlit app
 def main():
-    df = pd.read_csv(r'dipcef.csv', index_col='time_interval', parse_dates=True)
-    #path = r'/content/sample_data'
-    #all_files = glob.glob(os.path.join(path, "dipcef_*.csv"))
+    st.title('Time Series Forecasting')
 
-    #df = pd.concat((pd.read_csv(f, parse_dates=True) for f in all_files))
+    # File upload
+    uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+        df['time_interval'] = pd.to_datetime(df['time_interval'])
+        df.set_index('time_interval', inplace=True)
 
-    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-    #df['time_interval'] = pd.to_datetime(df['time_interval'])
-    #df = df.drop(columns=['MKT_TYPE', 'COMMODITY_TYPE','RESOURCE_NAME', 'RESOURCE_TYPE' , 'REGION_NAME' ,'RUN_TIME'])
-    print('Shape of Data' , df.shape)
-    df = df.dropna()
-    df.info()
+        X, y, scaler = preprocess_data(df)
 
-    import datetime
-    #df.index = df.index.date
-    #df = df.groupby(df.index)['avg_lmp'].agg(avg_lmp=('mean'))
-    # Resample the data to hourly intervals
-    data = df.resample('1H').mean()
-    data, scaler = preprocess_data(data)
-    
-    # Set up the sidebar with model selection
-    models = ['LSTM', 'SARIMA']
-    model_selection = st.sidebar.selectbox('Select Model', models)
-    
-    # Generate the forecast based on the selected model
-    if model_selection == 'LSTM':
-            train_data = data[:-4392]
-            test_data = data[-4392:]
-            scaler = MinMaxScaler()
-            scaled_data = scaler.fit_transform(simplified_data)
+        # Model selection
+        model_type = st.selectbox("Select model", options=["LSTM", "ARIMA"])
 
-            # Prepare LSTM training data
-            # Data scaling
-            scaler = MinMaxScaler()
-            scaled_data = scaler.fit_transform(data)
+        if model_type == "LSTM":
+            model = build_lstm_model(X, y)
 
-            # Prepare training data
-            train_data = scaled_data[:-8760]  # Use all but the last year for training
-            x_train, y_train = [], []
-            for i in range(8760, len(train_data)):
-                x_train.append(train_data[i-8760:i, 0])
-                y_train.append(train_data[i, 0])
-            x_train, y_train = np.array(x_train), np.array(y_train)
-            x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
+            # Forecast data for 1 day
+            last_x = X[-1]
+            future_data = forecast_lstm(model, last_x, scaler)
+        else:
+            model = build_arima_model(df['value'])
 
-            # Create and train LSTM model
-            model = Sequential()
-            model.add(LSTM(units=50, return_sequences=True, input_shape=(x_train.shape[1], 1)))
-            model.add(LSTM(units=50))
-            model.add(Dense(units=1))
-            model.compile(optimizer='adam', loss='mean_squared_error')
-            model.fit(x_train, y_train, epochs=10, batch_size=32)
- 
-            # Forecasting
-            last_year_data = scaled_data[-8760:]  # Use the last year for forecasting
-            x_test = []
-            for i in range(8760, len(last_year_data)):
-                x_test.append(last_year_data[i-8760:i, 0])
-            x_test = np.array(x_test)
-            x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
-            predicted_data = model.predict(x_test)
-            predicted_data = scaler.inverse_transform(predicted_data)
-            
-              # Plot forecast
-            trace1 = go.Scatter(x=df.index, y=df.avg_lmp, name='Actual')
-            trace2 = go.Scatter(x=list(lstm_predictions.index), y=lstm_predictions.avg_lmp, name='LSTM')
-            layout = go.Layout(title='Actual vs Forecast LMP')
-            fig = go.Figure(data=[trace1, trace2], layout=layout)
-            fig.show()
-            
-    elif model_selection == 'SARIMA':
-        data, scaler = preprocess_data(data)
-        forecast = sarima_forecast(data)
-    
-    # Display the hourly forecast
-    st.write('Hourly Forecast:')
-    st.write(pd.DataFrame({'Forecast': forecast}, index=data.tail(4392).index))
-
-if __name__ == '__main__':
-    main()
+            # Forecast
