@@ -16,7 +16,7 @@ def preprocess_data(df):
     scaled_data = scaler.fit_transform(df_hourly)
 
     # Prepare the data for LSTM model
-    lookback = 12  # Number of previous hours to use for prediction
+    lookback = 8760  # Number of previous hours to use for prediction
 
     X = []
     y = []
