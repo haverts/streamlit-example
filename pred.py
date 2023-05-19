@@ -17,7 +17,7 @@ def preprocess_data(df):
 
     # Prepare the data for LSTM model
     # User input for forecasting steps
-    lookback = 24*7
+    lookback = 12
     X = []
     y = []
     for i in range(lookback, len(scaled_data)):
@@ -46,7 +46,7 @@ def build_model(X, y):
 def forecast_data(model, last_x, scaler):
     future_data = []
 
-    for i in range(7*24):
+    for i in range(24):
         prediction = model.predict(np.array([last_x]))
         future_data.append(prediction[0])
         last_x = np.concatenate((last_x[1:], prediction), axis=0)
@@ -83,9 +83,8 @@ def main():
         st.write(forecast_df)
 
         # Plot forecasted data
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data[:, 0], name='Forecasted Data'))
-        fig.update_layout(title='1-Day Forecast using LSTM', xaxis_title='Delivery Interval', yaxis_title='Average LMP')
+        fig = px.line(forecast_df, x=forecast_df.index, y='Forecasted Value', title='1-Day Forecast')
+        fig.update_layout(xaxis_title='Delivery Interval', yaxis_title='Value')
         st.plotly_chart(fig)
 
 if __name__ == '__main__':
