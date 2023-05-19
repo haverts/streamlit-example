@@ -127,7 +127,7 @@ def main():
 
         # Create a DataFrame for future ARIMA forecast
         future_arima_df = pd.DataFrame(arima_forecast, columns=['ARIMA Forecast'])
-        future_arima_df.index = pd.date_range(start=data.index[-1] + pd.Timedelta(hours=1), periods=24, freq='H')
+        future_arima_df.index = pd.date_range(start=df.index[-1] + pd.Timedelta(hours=1), periods=24, freq='H')
         
         # Create DataFrame for LSTM forecasted data
         forecast_df_lstm = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value (LSTM)': future_data_lstm[:, 0]})
@@ -138,7 +138,7 @@ def main():
         # Display LSTM forecasted data
         st.subheader('LSTM Forecasted Data')
         forecast_df_lstm_placeholder = st.empty()
-        forecast_df_lstm_placeholder.write(future_data_lstm)
+        forecast_df_lstm_placeholder.write(forecast_df_lstm)
        
         # Display ARIMA forecasted data
         st.subheader('ARIMA Forecasted Data')
@@ -150,7 +150,7 @@ def main():
         # Plot forecasted data
         
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data_lstm[:, 0], name='Forecasted Data (LSTM)', line=dict(color='blue')))
+        fig.add_trace(go.Scatter(x=forecast_timestamps, y=forecast_df_lstm[:, 0], name='Forecasted Data (LSTM)', line=dict(color='blue')))
         fig.add_trace(go.Scatter(x=forecast_timestamps, y=arima_forecast, name='Forecasted Data (ARIMA)', line=dict(color='red', dash='dot')))
         fig.update_layout(
             title='1-Day Forecast using LSTM and ARIMA',
