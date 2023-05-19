@@ -127,13 +127,13 @@ def main():
         st.subheader('LSTM Forecasted Data')
         forecast_df_lstm_placeholder = st.empty()
         forecast_df_lstm_placeholder.write(forecast_df_lstm)
-        forecast_df_lstm_placeholder.markdown('<style>th { background-color: #00004d; color: white; }</style>', unsafe_allow_html=True)
+
         
         # Display ARIMA forecasted data
         st.subheader('ARIMA Forecasted Data')
         forecast_df_arima_placeholder = st.empty()
         forecast_df_arima_placeholder.write(forecast_df_arima)
-        forecast_df_arima_placeholder.markdown('<style>th { background-color: #00004d; color: white; }</style>', unsafe_allow_html=True)
+
 
         # Plot forecasted data
         fig = go.Figure()
