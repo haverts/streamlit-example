@@ -28,7 +28,7 @@ def main():
 
         # Step 1: Load and preprocess the data
         # Assuming you have a CSV file named 'data.csv' with a 'timestamp' and 'value' column
-        df = pd.read_csv('/content/sample_data/dipcef2.csv')
+        df = pd.read_csv('dipcef2.csv')
         df['TIME_INTERVAL'] = pd.to_datetime(df['TIME_INTERVAL'])
         df.set_index('TIME_INTERVAL', inplace=True)
 
