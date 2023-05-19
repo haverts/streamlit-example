@@ -34,8 +34,8 @@ def build_model(X, y):
     X = X.reshape(X.shape[0], X.shape[1])
     
     model = ARIMA(y, order=(5, 1, 0))
-    model_fit = model.fit(disp=False)
-    
+    model_fit = model.fit()
+
     return model_fit
 
 # Function to forecast data
