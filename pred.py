@@ -19,11 +19,11 @@ def preprocess_data(df):
 
     # Prepare the data for LSTM model
     # User input for forecasting steps
-    lookback = 24*7
+    lookback = 24 * 7
     X = []
     y = []
     for i in range(lookback, len(scaled_data)):
-        X.append(scaled_data[i-lookback:i])
+        X.append(scaled_data[i - lookback:i])
         y.append(scaled_data[i])
 
     X = np.array(X)
@@ -54,7 +54,7 @@ def build_arima_model(data):
 def forecast_lstm(model, last_x, scaler):
     future_data = []
 
-    for i in range(7*24):
+    for _ in range(7 * 24):
         prediction = model.predict(np.array([last_x]))
         future_data.append(prediction[0])
         last_x = np.concatenate((last_x[1:], prediction), axis=0)
@@ -95,28 +95,4 @@ def main():
 
             # Forecast data for 1 day
             steps = 24
-            future_data = forecast_arima(model, steps)
-
-        
-        start_timestamp = str(df.index[-1])
-        end_timestamp = pd.to_datetime(start_timestamp) + pd.DateOffset(hours=int(len(future_data)))
-
-        forecast_timestamps = pd.date_range(start=start_timestamp, end=end_timestamp, freq='H')[::-1]
-
-        
-        # Create DataFrame for forecasted data
-        forecast_df = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value': future_data[:, 0]})
-        forecast_df.set_index('Delivery Interval', inplace=True)
-
-        # Display forecasted data
-        st.subheader('Forecasted Data')
-        st.write(forecast_df)
-
-        # Plot forecasted data
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data[:, 0], name='Forecasted Data'))
-        fig.update_layout(title='1-Day Forecast', xaxis_title='Delivery Interval', yaxis_title='Value')
-        st.plotly_chart(fig)
-
-if __name__ == '__main__':
-    main()
+            future_data = forecast_ar
