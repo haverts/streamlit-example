@@ -126,8 +126,9 @@ def main():
 
 
         # Create a DataFrame for future ARIMA forecast
-        future_arima_df = pd.DataFrame(arima_forecast, columns=['ARIMA Forecast'])
-        future_arima_df.index = pd.date_range(start=df.index[-1] + pd.Timedelta(hours=1), periods=24, freq='H')
+        future_arima_df = pd.DataFrame(arima_forecast[0], columns=['ARIMA Forecast'])
+        future_arima_df.index = pd.date_range(start=data.index[-1] + pd.Timedelta(hours=1), periods=24, freq='H')
+
         
         # Create DataFrame for LSTM forecasted data
         forecast_df_lstm = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value (LSTM)': future_data_lstm[:, 0]})
