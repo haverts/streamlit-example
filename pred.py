@@ -47,6 +47,10 @@ def build_model(X, y):
 def forecast_data(model, last_x, scaler):
     future_data = []
     num_days = st.number_input('Enter the number of day/s to forecast:', min_value=1, max_value=10000, value=1, step=1) # Number of previous days to use for prediction
+    if lookback > 0:
+            # Wait for user to input forecast lookback
+        while st.button('Forecast') == False:
+             pass
     for i in range(numdays*24):
         prediction = model.predict(np.array([last_x]))
         future_data.append(prediction[0])
@@ -69,7 +73,10 @@ def main():
 
         X, y, scaler = preprocess_data(df)
         model = build_model(X, y)
-
+        if lookback > 0:
+            # Wait for user to input forecast lookback
+            while st.button('Confirm') == False:
+                pass
         # Forecast data for 1 day
         last_x = X[-1]
         future_data = forecast_data(model, last_x, scaler)
