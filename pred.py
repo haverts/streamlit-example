@@ -17,7 +17,7 @@ def preprocess_data(df):
 
     # Prepare the data for LSTM model
     # User input for forecasting steps
-    lookback = 24*7
+    lookback = 2160
     X = []
     y = []
     for i in range(lookback, len(scaled_data)):
@@ -46,7 +46,7 @@ def build_model(X, y):
 def forecast_data(model, last_x, scaler):
     future_data = []
 
-    for i in range(7*24):
+    for i in range(24):
         prediction = model.predict(np.array([last_x]))
         future_data.append(prediction[0])
         last_x = np.concatenate((last_x[1:], prediction), axis=0)
@@ -54,6 +54,7 @@ def forecast_data(model, last_x, scaler):
     future_data = np.array(future_data)
     future_data = scaler.inverse_transform(future_data)
     return future_data
+
 
 # Streamlit app
 def main():
