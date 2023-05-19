@@ -6,6 +6,8 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 import plotly.graph_objects as go
 from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.arima.model import ARIMA
+from sklearn.metrics import mean_squared_error
 
 
 # Function to preprocess the data
@@ -57,17 +59,26 @@ def forecast_data(model, last_x, scaler):
     future_data = scaler.inverse_transform(future_data)
     return future_data
 
-def build_arima_model(data):
-    model = ARIMA(data, order=(2, 1, 0))  # Define the ARIMA order
+# Function to build and train the ARIMA model
+def build_arima_model(df):
+    # Convert to hourly interval
+    df_hourly = df.resample('1H').mean().interpolate()
+
+    # Train-test split
+    train_size = int(len(df_hourly) * 0.8)
+    train_data = df_hourly[:train_size]
+    test_data = df_hourly[train_size:]
+
+    # Train the ARIMA model
+    model = ARIMA(train_data, order=(2, 1, 2))  # Specify the order (p, d, q)
     model_fit = model.fit()
-    return model_fit
 
-def build_model1(X, y):
-    model_fit = build_arima_model(y)  # Use ARIMA model instead of LSTM
-    return model_fit
+    return model_fit, test_data
 
-def forecast_arima_data(model, last_x, scaler):
-    future_data = []
+# Function to forecast data using ARIMA model
+def forecast_arima_data(model, test_data):
+    forecast = model.forecast(steps=len(test_data))[0]
+    return forecast
 
     for i in range(7*24):
         prediction = model.forecast(steps=1)[0]  # Use ARIMA model for forecasting
@@ -81,69 +92,55 @@ def forecast_arima_data(model, last_x, scaler):
 
 
 # Streamlit app
+# Streamlit app
 def main():
-    st.title('LSTM Data Forecasting')
-    # Model selection
-    model_type = st.sidebar.selectbox("Select Model", ("LSTM", "ARIMA"))
+    st.title('LSTM and ARIMA Data Forecasting')
 
     # File upload
     uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
     if uploaded_file is not None:
-        if model_type == "LSTM":
-            model = build_model(X, y)
-            last_x = scaled_data[-1]
-            future_data = forecast_data(model, last_x, scaler)
+        df = pd.read_csv(uploaded_file)
+        df['time_interval'] = pd.to_datetime(df['time_interval'])
+        df.set_index('time_interval', inplace=True)
 
-            df = pd.read_csv(uploaded_file)
-            df['time_interval'] = pd.to_datetime(df['time_interval'])
-            df.set_index('time_interval', inplace=True)
+        X, y, scaler = preprocess_data(df)
+        model = build_model(X, y)
 
-            X, y, scaler = preprocess_data(df)
-            model = build_model(X, y)
+        # Forecast data using LSTM model
+        last_x = X[-1]
+        future_data_lstm = forecast_data(model, last_x, scaler)
+        forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data_lstm) + 1, freq='H')[1:]
 
-            # Forecast data for 1 day
-            last_x = X[-1]
-            future_data = forecast_data(model, last_x, scaler)
-            forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data) + 1, freq='H')[1:]
+        # Create DataFrame for LSTM forecasted data
+        forecast_df_lstm = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value (LSTM)': future_data_lstm[:, 0]})
+        forecast_df_lstm.set_index('Delivery Interval', inplace=True)
 
-            # Create DataFrame for forecasted data
-            forecast_df = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value': future_data[:, 0]})
-            forecast_df.set_index('Delivery Interval', inplace=True)
+        # Display LSTM forecasted data
+        st.subheader('LSTM Forecasted Data')
+        st.write(forecast_df_lstm)
 
-            # Display forecasted data
-            st.subheader('Forecasted LSTM Data')
-            st.write(forecast_df)
+        # Train and forecast using ARIMA model
+        arima_model, test_data = build_arima_model(df)
+        future_data_arima = forecast_arima_data(arima_model, test_data)
 
-            # Plot forecasted data
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data[:, 0], name='Forecasted LSTM Data'))
-            fig.update_layout(title='1-Day Forecast using LSTM', xaxis_title='Delivery Interval', yaxis_title='Average LMP')
-            st.plotly_chart(fig)
-        else:
-            df = pd.read_csv(uploaded_file)
-            df['time_interval'] = pd.to_datetime(df['time_interval'])
-            df.set_index('time_interval', inplace=True)
+        # Create DataFrame for ARIMA forecasted data
+        forecast_df_arima = pd.DataFrame({'Delivery Interval': test_data.index, 'Forecasted Value (ARIMA)': future_data_arima})
+        forecast_df_arima.set_index('Delivery Interval', inplace=True)
 
-            scaled_data, original_data, scaler = preprocess_data(df)
-            model1 = build_model1(scaled_data, original_data)
+        # Display ARIMA forecasted data
+        st.subheader('ARIMA Forecasted Data')
+        st.write(forecast_df_arima)
 
-            # ARIMA forecast
-            model_arima = build_arima_model(original_data)
-            last_x_arima = original_data.values[-1]
-            future_data_arima = forecast_arima_data(model_arima, last_x_arima, scaler)
-      
-            forecast_df_arima = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted ARIMA Value': future_arima_data[:, 0]})
-            forecast_df_arima.set_index('Delivery Interval', inplace=True)
+        # Plot forecasted data
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data_lstm[:, 0], name='Forecasted Data (LSTM)'))
+        fig.add_trace(go.Scatter(x=test_data.index, y=future_data_arima, name='Forecasted Data (ARIMA)'))
+        fig.update_layout(title='1-Day Forecast using LSTM and ARIMA', xaxis_title='Delivery Interval', yaxis_title='Average LMP')
+        st.plotly_chart(fig)
 
-            # Display forecasted data
-            st.subheader('Forecasted ARIMA Data')
-            st.write(forecast_df_arima)
-
-            # Plot forecasted data
-            # Plot forecasted data
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_arima_data[:, 0], name='Forecasted ARIMA Data'))
-            fig.update_layout(title='1-Day Forecast using LSTM', xaxis_title='Delivery Interval', yaxis_title='Average LMP')
-            st.plotly_chart(fig)
+        # Calculate RMSE for the ARIMA model
+        rmse_arima = np.sqrt(mean_squared_error(test_data, future_data_arima))
+        st.subheader('ARIMA RMSE')
+        st.write(rmse_arima)
 if __name__ == '__main__':
     main()
