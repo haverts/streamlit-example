@@ -12,7 +12,7 @@ def main():
     st.title("LSTM Forecasting")
     file = st.file_uploader("Upload CSV file", type="csv")
     if file is not None:
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(file)
         df['TIME_INTERVAL'] = pd.to_datetime(df['TIME_INTERVAL'])
         df.set_index('TIME_INTERVAL', inplace=True)
 
