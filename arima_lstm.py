@@ -1,102 +1,131 @@
-import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from statsmodels.tsa.arima.model import ARIMA
+import pandas as pd
+import streamlit as st
+from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
-import streamlit as st
+import plotly.graph_objects as go
+import statsmodels.api as sm
+from statsmodels.tsa.statespace.sarimax import SARIMAX
 
-# Step 1: Upload CSV File
-uploaded_file = st.file_uploader("Upload CSV file", type="csv")
-if uploaded_file is not None:
-    data = pd.read_csv(uploaded_file)
-    # Assuming your data has a 'timestamp' column
-    data['time_interval'] = pd.to_datetime(data['time_interval'])
-    data = data.set_index('time_interval')
+# Function to preprocess the data for LSTM and SARIMA models
+def preprocess_data(df):
+    # Convert to hourly interval
+    df_hourly = df.resample('1H').mean().interpolate()
 
-    # Step 2: Preprocess the Data
-    # Convert to hourly intervals if necessary
-    # Assuming your data is already at hourly intervals
+    # Scale the data
+    scaler = MinMaxScaler()
+    scaled_data = scaler.fit_transform(df_hourly)
 
-    # Split into training and testing sets
-    train_data = data[:-1728]  # Use the first 6 months for training (assuming 24 hours per day)
-    test_data = data[-1728:]  # Use the last day for testing (24 hours)
+    # Prepare the data for LSTM model
+    # User input for forecasting steps
+    lookback = 2160
+    X_lstm = []
+    y_lstm = []
+    for i in range(lookback, len(scaled_data)):
+        X_lstm.append(scaled_data[i-lookback:i])
+        y_lstm.append(scaled_data[i])
 
-    # Step 3: ARIMA Model
-    # Fit ARIMA model to training data
-    arima_model = ARIMA(train_data, order=(2, 1, 0))  # ARIMA(2, 1, 0) as an example
-    arima_model_fit = arima_model.fit()
+    X_lstm = np.array(X_lstm)
+    y_lstm = np.array(y_lstm)
 
-    # Forecast one day of data
-    arima_forecast = arima_model_fit.forecast(steps=24)
+    # Reshape X for LSTM input shape (samples, time steps, features)
+    X_lstm = np.reshape(X_lstm, (X_lstm.shape[0], X_lstm.shape[1], 1))
 
-    # Plot ARIMA forecast
-    plt.figure(figsize=(10, 6))
-    plt.plot(test_data.index, test_data.values, label='Actual')
-    plt.plot(test_data.index, arima_forecast, label='ARIMA Forecast')
-    plt.xlabel('Time')
-    plt.ylabel('Value')
-    plt.title('ARIMA Forecast')
-    plt.legend()
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    st.pyplot()
+    # Prepare the data for SARIMA model
+    lookback_sarima = 2160
+    X_sarima = []
+    y_sarima = []
+    for i in range(lookback_sarima, len(scaled_data)):
+        X_sarima.append(scaled_data[i-lookback_sarima:i])
+        y_sarima.append(scaled_data[i])
 
-    # Create a DataFrame for future ARIMA forecast
-    future_arima_df = pd.DataFrame(arima_forecast, columns=['ARIMA Forecast'])
-    future_arima_df.index = pd.date_range(start=data.index[-1] + pd.Timedelta(hours=1), periods=24, freq='H')
+    X_sarima = np.array(X_sarima)
+    y_sarima = np.array(y_sarima)
 
-    # Step 4: LSTM Model
-    # Normalize the data
-    max_value = train_data.max().values
-    min_value = train_data.min().values
-    normalized_data = (train_data - min_value) / (max_value - min_value)
+    return X_lstm, y_lstm, scaler, X_sarima, y_sarima
 
-    # Reshape the data for LSTM
-    X_train = []
-    y_train = []
-    for i in range(24, len(normalized_data)):
-        X_train.append(normalized_data[i - 24:i, 0])
-        y_train.append(normalized_data[i, 0])
-    X_train, y_train = np.array(X_train), np.array(y_train)
+# Function to build and train the LSTM model
+def build_lstm_model(X, y):
+    model = Sequential()
+    model.add(LSTM(units=50, return_sequences=True, input_shape=(X.shape[1], 1)))
+    model.add(LSTM(units=50))
+    model.add(Dense(units=1))
+    model.compile(optimizer='adam', loss='mean_squared_error')
+    model.fit(X, y, epochs=10, batch_size=32)
+    return model
 
-    # Reshape the data for prediction
-    last_day = normalized_data[-24:].values
-    last_day = np.reshape(last_day, (1, last_day.shape[0], 1))
+# Function to build and train the SARIMA model
+def build_sarima_model(X, y):
+    model = SARIMAX(y, order=(5, 1, 0))
+    model_fit = model.fit()
+    return model_fit
 
-    # Build LSTM model
-    lstm_model = Sequential()
-    lstm_model.add(LSTM(units=50, return_sequences=True, input_shape=(24, 1)))
-    lstm_model.add(LSTM(units=50))
-    lstm_model.add(Dense(units=1))
-    lstm_model.compile(optimizer='adam', loss='mean_squared_error')
+# Function to forecast data using the LSTM model
+def forecast_lstm_data(model, last_x, scaler, steps):
+    future_data = []
 
-    # Train the LSTM model
-    lstm_model.fit(X_train, y_train, epochs=50, batch_size=32)
+    for _ in range(steps):
+        prediction = model.predict(np.array([last_x]))
+        future_data.append(prediction[0])
+        last_x = np.concatenate((last_x[1:], prediction), axis=0)
 
-    # Forecast one day of data
-    lstm_forecast = lstm_model.predict(last_day)
-    lstm_forecast = lstm_forecast * (max_value - min_value) + min_value
+    future_data = np.array(future_data)
+    future_data = scaler.inverse_transform(future_data)
+    return future_data
 
-    # Plot LSTM forecast
-    plt.figure(figsize=(10, 6))
-    plt.plot(test_data.index, test_data.values, label='Actual')
-    plt.plot(test_data.index, lstm_forecast.flatten(), label='LSTM Forecast')
-    plt.xlabel('Time')
-    plt.ylabel('Value')
-    plt.title('LSTM Forecast')
-    plt.legend()
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    st.pyplot()
+# Function to forecast data using the SARIMA model
+def forecast_sarima_data(model, last_x, scaler, steps):
+    future_data = model.forecast(steps)
+    future_data = np.array(future_data)
+    future_data = future_data.reshape(future_data.shape[0], 1)
+    future_data = scaler.inverse_transform(future_data)
+    return future_data
 
-    # Create a DataFrame for future LSTM forecast
-    future_lstm_df = pd.DataFrame(lstm_forecast.flatten(), columns=['LSTM Forecast'])
-    future_lstm_df.index = pd.date_range(start=data.index[-1] + pd.Timedelta(hours=1), periods=24, freq='H')
+# Streamlit app
+def main():
+    st.title('Data Forecasting')
 
-    # Step 5: Visualizing the Results
-    st.subheader('ARIMA Forecast')
-    st.write(future_arima_df)
+    # File upload
+    uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+        df['time_interval'] = pd.to_datetime(df['time_interval'])
+        df.set_index('time_interval', inplace=True)
 
-    st.subheader('LSTM Forecast')
-    st.write(future_lstm_df)
+        X_lstm, y_lstm, scaler_lstm, X_sarima, y_sarima = preprocess_data(df)
+        model_lstm = build_lstm_model(X_lstm, y_lstm)
+        model_sarima = build_sarima_model(X_sarima, y_sarima)
+
+        # Forecast data for 1 day
+        last_x_lstm = X_lstm[-1]
+        last_x_sarima = X_sarima[-1]
+        forecast_steps = 24  # Number of steps to forecast
+
+        future_data_lstm = forecast_lstm_data(model_lstm, last_x_lstm, scaler_lstm, forecast_steps)
+        future_data_sarima = forecast_sarima_data(model_sarima, last_x_sarima, scaler_lstm, forecast_steps)
+
+        forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data_lstm) + 1, freq='H')[1:]
+
+        # Create DataFrame for forecasted data
+        forecast_df_lstm = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value (LSTM)': future_data_lstm[:, 0]})
+        forecast_df_sarima = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value (SARIMA)': future_data_sarima[:, 0]})
+        forecast_df_lstm.set_index('Delivery Interval', inplace=True)
+        forecast_df_sarima.set_index('Delivery Interval', inplace=True)
+
+        # Display forecasted data
+        st.subheader('LSTM Forecasted Data')
+        st.write(forecast_df_lstm)
+
+        st.subheader('SARIMA Forecasted Data')
+        st.write(forecast_df_sarima)
+
+        # Plot forecasted data
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data_lstm[:, 0], name='Forecasted Data (LSTM)'))
+        fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data_sarima[:, 0], name='Forecasted Data (SARIMA)'))
+        fig.update_layout(title='1-Day Forecast using LSTM and SARIMA', xaxis_title='Delivery Interval', yaxis_title='Average LMP')
+        st.plotly_chart(fig)
+
+if __name__ == '__main__':
+    main()
