@@ -40,8 +40,8 @@ def build_model(X, y):
 
 # Function to forecast data
 def forecast_data(model, last_x, scaler, steps):
-    future_data = model.forecast(steps)[0]
-    future_data = np.array(future_data)
+    forecast = model.forecast(steps)
+    future_data = np.array(forecast[0])
     
     if future_data.shape[0] == 1:
         future_data = future_data.reshape(1, 1)
