@@ -120,7 +120,7 @@ def main():
         forecast_df_lstm.set_index('Delivery Interval', inplace=True)
         
          # Create DataFrame for ARIMA forecasted data
-        forecast_df_arima = pd.DataFrame({'Delivery Interval': test_data.index, 'Forecasted Value (ARIMA)': future_data_arima})
+        forecast_df_arima = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted Value (ARIMA)': future_data_arima})
         forecast_df_arima.set_index('Delivery Interval', inplace=True)
 
         # Display LSTM forecasted data
@@ -138,7 +138,7 @@ def main():
 
 
         # Plot forecasted data
-        future_data_arima_y = future_data_lstm[:, 0].tolist()
+        future_data_arima_y = future_data_arima[:, 0].tolist()
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data_lstm[:, 0], name='Forecasted Data (LSTM)', line=dict(color='blue')))
         fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data_arima_y, name='Forecasted Data (ARIMA)', line=dict(color='red', dash='dot')))
