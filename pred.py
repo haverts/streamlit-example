@@ -17,7 +17,7 @@ def preprocess_data(df):
 
     # Prepare the data for LSTM model
     # User input for forecasting steps
-    lookback = st.number_input('Enter the number of steps to forecast:', min_value=1, max_value=10000, value=1, step=1) # Number of previous hours to use for prediction
+    lookback = st.number_input('Enter the number lookback hours to forecast:', min_value=1, max_value=10000, value=1, step=1) # Number of previous hours to use for prediction
 
     X = []
     y = []
@@ -46,7 +46,8 @@ def build_model(X, y):
 # Function to forecast data
 def forecast_data(model, last_x, scaler):
     future_data = []
-    for i in range(24):
+    num_days = st.number_input('Enter the number of day/s to forecast:', min_value=1, max_value=10000, value=1, step=1) # Number of previous days to use for prediction
+    for i in range(numdays*24):
         prediction = model.predict(np.array([last_x]))
         future_data.append(prediction[0])
         last_x = np.concatenate((last_x[1:], prediction), axis=0)
