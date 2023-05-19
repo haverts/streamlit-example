@@ -112,8 +112,8 @@ def main():
         forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data_lstm) + 1, freq='H')[1:]
 
     # Split into training and testing sets
-        train_data = data[:-1728]  # Use the first 6 months for training (assuming 24 hours per day)
-        test_data = data[-1728:]  # Use the last day for testing (24 hours)
+        train_data = df[:-1728]  # Use the first 6 months for training (assuming 24 hours per day)
+        test_data = df[-1728:]  # Use the last day for testing (24 hours)
 
         # Step 3: ARIMA Model
         # Fit ARIMA model to training data
