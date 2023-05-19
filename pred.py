@@ -98,7 +98,8 @@ def main():
             future_data = forecast_arima(model, steps)
 
         
-        forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data) + 1, freq='H')[::-1][1:]
+        forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data), freq='H')[::-1]
+
 
 
         
