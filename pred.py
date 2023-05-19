@@ -131,9 +131,7 @@ def main():
             model_arima = build_arima_model(original_data)
             last_x_arima = original_data.values[-1]
             future_data_arima = forecast_arima_data(model_arima, last_x_arima, scaler)
-
-            # Combine ARIMA forecasts
-            forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data_arima + 1, freq='H')[1:]
+      
             forecast_df_arima = pd.DataFrame({'Delivery Interval': forecast_timestamps, 'Forecasted ARIMA Value': future_arima_data[:, 0]})
             forecast_df_arima.set_index('Delivery Interval', inplace=True)
 
