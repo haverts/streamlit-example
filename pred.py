@@ -90,7 +90,7 @@ def main():
     uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
     if uploaded_file is not None:
         if model_type == "LSTM":
-            model = build_model(scaled_data, original_data)
+            model = build_model(X, y)
             last_x = scaled_data[-1]
             future_data = forecast_data(model, last_x, scaler)
 
