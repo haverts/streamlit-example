@@ -52,7 +52,7 @@ def build_lstm_model(X, y):
     model.add(LSTM(units=50))
     model.add(Dense(units=1))
     model.compile(optimizer='adam', loss='mean_squared_error')
-    model.fit(X, y, epochs=15, batch_size=32)
+    model.fit(X, y, epochs=10, batch_size=32)
     return model
 
 # Function to build and train the SARIMA model
@@ -61,7 +61,6 @@ def build_sarima_model(X, y):
     model_fit = model.fit()
     return model_fit
 
-# Function to forecast data using the LSTM model
 def forecast_lstm_data(model, last_x, scaler, steps):
     future_data = []
 
@@ -72,17 +71,29 @@ def forecast_lstm_data(model, last_x, scaler, steps):
 
     future_data = np.array(future_data)
     future_data = scaler.inverse_transform(future_data)
-    return future_data
 
-# Function to forecast data using the SARIMA model
+    # Calculate MSE and MAE
+    y_true = scaler.inverse_transform(last_x[-steps:])
+    mse = mean_squared_error(y_true, future_data)
+    mae = mean_absolute_error(y_true, future_data)
+
+    return future_data, mse, mae
+
+
 def forecast_sarima_data(model, last_x, scaler, steps):
     future_data = model.forecast(steps)
     future_data = np.array(future_data)
     future_data = future_data.reshape(future_data.shape[0], 1)
     future_data = scaler.inverse_transform(future_data)
-    return future_data
 
-# Streamlit app
+    # Calculate MSE and MAE
+    y_true = scaler.inverse_transform(last_x[-steps:])
+    mse = mean_squared_error(y_true, future_data)
+    mae = mean_absolute_error(y_true, future_data)
+
+    return future_data, mse, mae
+
+
 def main():
     st.title('Data Forecasting')
 
@@ -102,8 +113,8 @@ def main():
         last_x_sarima = X_sarima[-1]
         forecast_steps = 24  # Number of steps to forecast
 
-        future_data_lstm = forecast_lstm_data(model_lstm, last_x_lstm, scaler_lstm, forecast_steps)
-        future_data_sarima = forecast_sarima_data(model_sarima, last_x_sarima, scaler_lstm, forecast_steps)
+        future_data_lstm, mse_lstm, mae_lstm = forecast_lstm_data(model_lstm, last_x_lstm, scaler_lstm, forecast_steps)
+        future_data_sarima, mse_sarima, mae_sarima = forecast_sarima_data(model_sarima, last_x_sarima, scaler_lstm, forecast_steps)
 
         forecast_timestamps = pd.date_range(start=df.index[-1], periods=len(future_data_lstm) + 1, freq='H')[1:]
 
@@ -115,9 +126,15 @@ def main():
         merged_df = pd.merge(forecast_df_lstm, forecast_df_sarima, on='Delivery Interval')
 
         # Display forecasted data
-        st.subheader('LSTM and SARIMAX Forecasted Data')
+        st.subheader('LSTM and SARIMA Forecasted Data')
         st.write(merged_df)
 
+        # Display MSE and MAE
+        st.subheader('Mean Squared Error (MSE) and Mean Absolute Error (MAE)')
+        st.write('LSTM MSE:', mse_lstm)
+        st.write('LSTM MAE:', mae_lstm)
+        st.write('SARIMA MSE:', mse_sarima)
+        st.write('SARIMA MAE:', mae_sarima)
 
         # Plot forecasted data
         fig = go.Figure()
@@ -125,6 +142,7 @@ def main():
         fig.add_trace(go.Scatter(x=forecast_timestamps, y=future_data_sarima[:, 0], name='Forecasted Data (SARIMA)'))
         fig.update_layout(title='1-Day Forecast using LSTM and SARIMA', xaxis_title='Delivery Interval', yaxis_title='Average LMP')
         st.plotly_chart(fig)
+
 
 if __name__ == '__main__':
     main()
