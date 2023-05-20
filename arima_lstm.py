@@ -7,6 +7,8 @@ from tensorflow.keras.layers import LSTM, Dense
 import plotly.graph_objects as go
 import statsmodels.api as sm
 from statsmodels.tsa.statespace.sarimax import SARIMAX
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+
 
 # Function to preprocess the data for LSTM and SARIMA models
 def preprocess_data(df):
@@ -52,7 +54,7 @@ def build_lstm_model(X, y):
     model.add(LSTM(units=50))
     model.add(Dense(units=1))
     model.compile(optimizer='adam', loss='mean_squared_error')
-    model.fit(X, y, epochs=10, batch_size=32)
+    model.fit(X, y, epochs=5, batch_size=32)
     return model
 
 # Function to build and train the SARIMA model
